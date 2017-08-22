@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TDS.EndPoint\TDS.EndPoint.csproj" />
+    <ProjectReference Include="..\TDS\TDS.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="TdsServerCertificate.pfx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
