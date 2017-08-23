@@ -10,6 +10,7 @@ using Microsoft.SqlServer.TDS.PreLogin;
 using Microsoft.SqlServer.TDS.SQLBatch;
 using Microsoft.SqlServer.TDS.SSPI;
 using Microsoft.SqlServer.TDS.Authentication;
+using TDS.RPC;
 
 namespace Microsoft.SqlServer.TDS
 {
@@ -319,6 +320,11 @@ namespace Microsoft.SqlServer.TDS
                         Add(new TDSFedAuthToken(_dataStream));
                         break;
                     }
+                case TDSMessageType.RPC:
+                {
+                    Add(new TDSRPCRequestToken(_dataStream));
+                    break;
+                }
                 default:
                     {
                         // We don't recognize this message type

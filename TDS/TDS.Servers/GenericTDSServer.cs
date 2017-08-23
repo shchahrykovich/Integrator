@@ -343,6 +343,36 @@ namespace Microsoft.SqlServer.TDS.Servers
             return Engine.ExecuteAttention(session, message);
         }
 
+        public TDSMessageCollection OnRPCRequest(ITDSServerSession session, TDSMessage message)
+        {
+            // Delegate to the query engine
+            TDSMessageCollection responseMessage = Engine.ExecuteRPC(session, message);
+
+            // Check if session packet size is different than the engine packet size
+            if (session.PacketSize != Arguments.PacketSize)
+            {
+                // Get the first message
+                TDSMessage firstMessage = responseMessage[0];
+
+                // Find DONE token in it
+                int indexOfDone = firstMessage.IndexOf(firstMessage.Where(t => t is TDSDoneToken).First());
+
+                // Create new packet size environment change token
+                TDSEnvChangeToken envChange = new TDSEnvChangeToken(TDSEnvChangeTokenType.PacketSize, Arguments.PacketSize.ToString(), session.PacketSize.ToString());
+
+                // Log response
+                TDSUtilities.Log(Arguments.Log, "Response", envChange);
+
+                // Insert env change before done token
+                firstMessage.Insert(indexOfDone, envChange);
+
+                // Update session with the new packet size
+                session.PacketSize = (uint)Arguments.PacketSize;
+            }
+
+            return responseMessage;
+        }
+
         /// <summary>
         /// Advances one step in SSPI authentication sequence
         /// </summary>

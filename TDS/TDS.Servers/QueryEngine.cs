@@ -356,10 +356,15 @@ namespace Microsoft.SqlServer.TDS.Servers
                 responseMessage.Add(doneToken);
             }
 
-            // Response collection will contain only one message
+            // Response cosllection will contain only one message
             return new TDSMessageCollection(responseMessage);
         }
 
+        public TDSMessageCollection ExecuteRPC(ITDSServerSession session, TDSMessage message)
+        {
+            TDSDoneToken doneToken = new TDSDoneToken(TDSDoneTokenStatusType.Final | TDSDoneTokenStatusType.Count, TDSDoneTokenCommandType.Select, 0);
+            return new TDSMessageCollection(new TDSMessage(TDSMessageType.Response, doneToken));
+        }
 
         /// <summary>
         /// Handle attention from the client

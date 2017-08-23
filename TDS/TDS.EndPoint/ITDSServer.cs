@@ -64,5 +64,7 @@ namespace Microsoft.SqlServer.TDS.EndPoint
         /// <param name="message">TDS message recieved</param>
         /// <returns>TDS message to respond with</returns>
         TDSMessageCollection OnAttention(ITDSServerSession session, TDSMessage message);
+
+        TDSMessageCollection OnRPCRequest(ITDSServerSession session, TDSMessage messageBeingReceived);
     }
 }
