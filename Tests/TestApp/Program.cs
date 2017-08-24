@@ -40,6 +40,44 @@ namespace TestApp
 
             switch (cmd)
             {
+                case "execute-reader-with-parameters":
+                    {
+                        using (SqlConnection conn = new SqlConnection(connestionString))
+                        using (SqlCommand command = new SqlCommand())
+                        {
+                            command.Connection = conn;
+                            command.CommandText = "dbo.GetAllUsers";
+                            command.CommandType = CommandType.StoredProcedure;
+
+                            var p = new SqlParameter("name", SqlDbType.NVarChar, 255);
+                            p.Value = "test-test";
+                            command.Parameters.Add(p);
+
+                            p = new SqlParameter("name2", SqlDbType.NVarChar, 255);
+                            p.Value = "test-test2";
+                            command.Parameters.Add(p);
+
+                            conn.Open();
+
+                            using (SqlDataReader rdr = command.ExecuteReader())
+                            {
+                                while (rdr.Read())
+                                {
+                                    if (rdr.GetInt32(0) != 1)
+                                    {
+                                        return 1;
+                                    }
+
+                                    if (rdr.GetString(1) != "Bob")
+                                    {
+                                        return 2;
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    }
+
                 case "execute-scalar":
                 {
                     using (SqlConnection conn = new SqlConnection(connestionString))

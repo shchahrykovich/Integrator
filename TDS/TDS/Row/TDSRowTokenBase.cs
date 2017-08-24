@@ -46,8 +46,13 @@ namespace Microsoft.SqlServer.TDS.Row
         /// <returns>TRUE if inflation is complete</returns>
         protected virtual object InflateColumn(Stream source, TDSColumnData column)
         {
+            return InflateColumnData(source, column.DataType, column.DataTypeSpecific);
+        }
+
+        public static object InflateColumnData(Stream source, TDSDataType column, Object dataTypeSpecific)
+        {
             // Dispatch further reading based on the type
-            switch (column.DataType)
+            switch (column)
             {
                 case TDSDataType.Null:
                     {
@@ -202,7 +207,7 @@ namespace Microsoft.SqlServer.TDS.Row
                 case TDSDataType.NVarChar:
                     {
                         // Check if MAX type
-                        if ((column.DataTypeSpecific as TDSShilohVarCharColumnSpecific).Length == 0xFFFF)
+                        if ((dataTypeSpecific as TDSShilohVarCharColumnSpecific).Length == 0xFFFF)
                         {
                             // Read the length of partialy length-prefixed type
                             ulong length = TDSUtilities.ReadULong(source);
@@ -270,7 +275,7 @@ namespace Microsoft.SqlServer.TDS.Row
                         byte[] bytes = null;
 
                         // Check if MAX type
-                        if ((ushort)column.DataTypeSpecific == 0xFFFF)
+                        if ((ushort)dataTypeSpecific == 0xFFFF)
                         {
                             // Read the length of partialy length-prefixed type
                             ulong length = TDSUtilities.ReadULong(source);
@@ -360,7 +365,7 @@ namespace Microsoft.SqlServer.TDS.Row
                 default:
                     {
                         // We don't know this type
-                        throw new NotImplementedException(string.Format("Unrecognized data type {0} for inflation", column.DataType));
+                        throw new NotImplementedException(string.Format("Unrecognized data type {0} for inflation", column));
                     }
             }
         }
@@ -373,8 +378,13 @@ namespace Microsoft.SqlServer.TDS.Row
         /// <param name="data">Column value</param>
         protected virtual void DeflateColumn(Stream destination, TDSColumnData column, object data)
         {
+            DeflateTypeVarByte(destination, column.DataType, data);
+        }
+
+        public static void DeflateTypeVarByte(Stream destination, TDSDataType column, object data)
+        {
             // Dispatch further reading based on the type
-            switch (column.DataType)
+            switch (column)
             {
                 case TDSDataType.Null:
                     {
@@ -577,7 +587,7 @@ namespace Microsoft.SqlServer.TDS.Row
                 default:
                     {
                         // We don't know this type
-                        throw new NotImplementedException(string.Format("Unrecognized data type {0} for deflation", column.DataType));
+                        throw new NotImplementedException(string.Format("Unrecognized data type {0} for deflation", column));
                     }
             }
         }

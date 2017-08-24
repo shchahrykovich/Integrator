@@ -13,9 +13,6 @@ namespace Runner
 
         [JsonProperty("rpc-count")]
         public ulong RpcCount { get; set; }
-
-        [JsonProperty("rpc-scalar")]
-        public ulong RpcScalar { get; set; }
     }
 
     public class SqlRecord

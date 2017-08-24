@@ -6,6 +6,8 @@ using System.Text;
 using Microsoft.SqlServer.TDS;
 using Microsoft.SqlServer.TDS.AllHeaders;
 using Microsoft.SqlServer.TDS.Login7;
+using Microsoft.SqlServer.TDS.ColMetadata;
+using Microsoft.SqlServer.TDS.Row;
 
 namespace TDS.RPC
 {
@@ -14,12 +16,17 @@ namespace TDS.RPC
     /// </summary>
     public class TDSRPCRequestToken: TDSPacketToken
     {
+        public TDSRPCRequestToken()
+        {
+            Parameters = new List<TDSRPCRequestParameter>();
+        }
+
         /// <summary>
         /// Inflating constructor
         /// </summary>
         public TDSRPCRequestToken(Stream source)
         {
-            // Inflate token
+            Parameters = new List<TDSRPCRequestParameter>();
             Inflate(source);
         }
 
@@ -40,29 +47,27 @@ namespace TDS.RPC
                 throw new ArgumentException("Failed to inflate all headers");
             }
 
-            var length = TDSUtilities.ReadUShort(source);
-            if (length == 65535)
+            var lengthProcName = TDSUtilities.ReadUShort(source);
+            if (lengthProcName == 65535)
             {
                 ProcID = (TDSRPCRequestTokenProcID)TDSUtilities.ReadUShort(source);
             }
             else
             {
-                ProcName = TDSUtilities.ReadString(source, (ushort)(length * 2));
+                ProcName = TDSUtilities.ReadString(source, (ushort)(lengthProcName * 2));
             }
 
-            OptionFlags = new TDSRPCRequestOptionFlags((byte)source.ReadByte());
+            OptionFlags = new TDSRPCRequestOptionFlags((byte)TDSUtilities.ReadUShort(source));
 
-            var len = source.ReadByte();
-            ParamMetaData = TDSUtilities.ReadString(source, (ushort)len);
-
-            StatusFlags = new TDSRPCRequestStatusFlags((byte)source.ReadByte());
-
-            //TDSColumnData
+            TDSRPCRequestParameter p = new TDSRPCRequestParameter();
+            while(p.Inflate(source))
+            {
+                Parameters.Add(p);
+                p = new TDSRPCRequestParameter();
+            }
 
             return true;
         }
-
-        public TDSRPCRequestStatusFlags StatusFlags { get; set; }
 
         public TDSRPCRequestOptionFlags OptionFlags { get; set; }
 
@@ -71,8 +76,7 @@ namespace TDS.RPC
         public string ProcName { get; set; }
 
         public TDSAllHeadersToken AllHeaders { get; set; }
-
-        public String ParamMetaData { get; set; }
+        public List<TDSRPCRequestParameter> Parameters { get; set; }
 
         public override void Deflate(Stream destination)
         {

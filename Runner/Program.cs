@@ -1,8 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
-using System.Data.SqlClient.Tests;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
@@ -35,6 +33,10 @@ namespace Runner
                 {
                     continue;
                 }
+
+                Console.WriteLine("---------------------------------------");
+                Console.WriteLine("Executing - " + Path.GetFileName(test));
+                Console.WriteLine("---------------------------------------");
 
                 Test t = new Test();
                 var configFile = Path.Combine(test, "parameters.json");
