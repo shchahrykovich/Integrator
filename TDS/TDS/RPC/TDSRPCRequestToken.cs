@@ -47,7 +47,7 @@ namespace TDS.RPC
             }
             else
             {
-                ProcName = TDSUtilities.ReadString(source, length);
+                ProcName = TDSUtilities.ReadString(source, (ushort)(length * 2));
             }
 
             OptionFlags = new TDSRPCRequestOptionFlags((byte)source.ReadByte());
@@ -56,6 +56,8 @@ namespace TDS.RPC
             ParamMetaData = TDSUtilities.ReadString(source, (ushort)len);
 
             StatusFlags = new TDSRPCRequestStatusFlags((byte)source.ReadByte());
+
+            //TDSColumnData
 
             return true;
         }

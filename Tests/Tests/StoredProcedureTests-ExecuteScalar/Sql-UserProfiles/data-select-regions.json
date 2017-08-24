@@ -1,0 +1,4 @@
+{
+  "query": "dbo.getallusers",
+  "rpc-scalar": 110
+}

@@ -5,9 +5,11 @@ using Microsoft.SqlServer.TDS;
 using Microsoft.SqlServer.TDS.ColMetadata;
 using Microsoft.SqlServer.TDS.Done;
 using Microsoft.SqlServer.TDS.EndPoint;
+using Microsoft.SqlServer.TDS.ReturnStatus;
 using Microsoft.SqlServer.TDS.Row;
 using Microsoft.SqlServer.TDS.Servers;
 using Microsoft.SqlServer.TDS.SQLBatch;
+using TDS.RPC;
 
 namespace Runner
 {
@@ -18,6 +20,26 @@ namespace Runner
         public StaticQueryEngine(TDSServerArguments arguments) : base(arguments)
         {
             _data = new Dictionary<string, SqlTestData>();
+        }
+
+        public override TDSMessageCollection ExecuteRPC(ITDSServerSession session, TDSMessage message)
+        {
+            TDSRPCRequestToken rpc = message[0] as TDSRPCRequestToken;
+
+            var text = rpc.ProcName.ToLowerInvariant();
+
+            TDSDoneToken done = new TDSDoneToken(TDSDoneTokenStatusType.Final, TDSDoneTokenCommandType.Done, 0);
+            if (_data.ContainsKey(text))
+            {
+                var result = _data[text];
+
+                TDSDoneInProcToken doneIn =
+                    new TDSDoneInProcToken(TDSDoneTokenStatusType.Count, TDSDoneTokenCommandType.DoneInProc, result.RpcCount);
+                TDSReturnStatusToken status = new TDSReturnStatusToken(1);
+
+                return new TDSMessageCollection(new TDSMessage(TDSMessageType.Response, doneIn, status, done));
+            }
+            return new TDSMessageCollection(new TDSMessage(TDSMessageType.Response, done));
         }
 
         protected override TDSMessageCollection CreateQueryResponse(ITDSServerSession session, TDSSQLBatchToken batchRequest)

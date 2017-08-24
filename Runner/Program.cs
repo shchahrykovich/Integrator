@@ -31,6 +31,11 @@ namespace Runner
 
             foreach (var test in Directory.GetDirectories(tests, "*", SearchOption.TopDirectoryOnly))
             {
+                if (Path.GetFileName(test).StartsWith("!"))
+                {
+                    continue;
+                }
+
                 Test t = new Test();
                 var configFile = Path.Combine(test, "parameters.json");
                 if (File.Exists(configFile))

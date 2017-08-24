@@ -360,7 +360,7 @@ namespace Microsoft.SqlServer.TDS.Servers
             return new TDSMessageCollection(responseMessage);
         }
 
-        public TDSMessageCollection ExecuteRPC(ITDSServerSession session, TDSMessage message)
+        public virtual TDSMessageCollection ExecuteRPC(ITDSServerSession session, TDSMessage message)
         {
             TDSDoneToken doneToken = new TDSDoneToken(TDSDoneTokenStatusType.Final | TDSDoneTokenStatusType.Count, TDSDoneTokenCommandType.Select, 0);
             return new TDSMessageCollection(new TDSMessage(TDSMessageType.Response, doneToken));

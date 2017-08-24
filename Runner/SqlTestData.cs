@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Text;
+using Newtonsoft.Json;
 
 namespace Runner
 {
@@ -9,6 +10,12 @@ namespace Runner
     {
         public String Query { get; set; }
         public SqlRecord[] Records { get; set; }
+
+        [JsonProperty("rpc-count")]
+        public ulong RpcCount { get; set; }
+
+        [JsonProperty("rpc-scalar")]
+        public ulong RpcScalar { get; set; }
     }
 
     public class SqlRecord
