@@ -259,45 +259,69 @@ namespace Microsoft.SqlServer.TDS.EnvChange
                 case TDSEnvChangeTokenType.CharacterSet:
                 case TDSEnvChangeTokenType.PacketSize:
                 case TDSEnvChangeTokenType.RealTimeLogShipping:
-                    {
-                        // Write new value length
-                        cache.WriteByte((byte)(string.IsNullOrEmpty((string)NewValue) ? 0 : ((string)NewValue).Length));
+                {
+                    // Write new value length
+                    cache.WriteByte((byte) (string.IsNullOrEmpty((string) NewValue) ? 0 : ((string) NewValue).Length));
 
-                        // Write new value
-                        TDSUtilities.WriteString(cache, (string)NewValue);
+                    // Write new value
+                    TDSUtilities.WriteString(cache, (string) NewValue);
 
-                        // Write old value length
-                        cache.WriteByte((byte)(string.IsNullOrEmpty((string)OldValue) ? 0 : ((string)OldValue).Length));
+                    // Write old value length
+                    cache.WriteByte((byte) (string.IsNullOrEmpty((string) OldValue) ? 0 : ((string) OldValue).Length));
 
-                        // Write old value
-                        TDSUtilities.WriteString(cache, (string)OldValue);
+                    // Write old value
+                    TDSUtilities.WriteString(cache, (string) OldValue);
 
-                        break;
-                    }
+                    break;
+                }
                 case TDSEnvChangeTokenType.Routing:
+                {
+                    // Create a sub-cache to determine the value length
+                    MemoryStream subCache = new MemoryStream();
+
+                    // Check if new value exists
+                    if (NewValue != null)
                     {
-                        // Create a sub-cache to determine the value length
-                        MemoryStream subCache = new MemoryStream();
-
-                        // Check if new value exists
-                        if (NewValue != null)
-                        {
-                            // Deflate token value
-                            (NewValue as TDSRoutingEnvChangeTokenValue).Deflate(subCache);
-                        }
-
-                        // Write new value length
-                        TDSUtilities.WriteUShort(cache, (ushort)subCache.Length);
-
-                        // Write new value
-                        subCache.WriteTo(cache);
-
-                        // Write zero for the old value length
-                        TDSUtilities.WriteUShort(cache, 0);
-
-                        break;
+                        // Deflate token value
+                        (NewValue as TDSRoutingEnvChangeTokenValue).Deflate(subCache);
                     }
+
+                    // Write new value length
+                    TDSUtilities.WriteUShort(cache, (ushort) subCache.Length);
+
+                    // Write new value
+                    subCache.WriteTo(cache);
+
+                    // Write zero for the old value length
+                    TDSUtilities.WriteUShort(cache, 0);
+
+                    break;
+                }
                 case TDSEnvChangeTokenType.SQLCollation:
+                {
+                    // Write new value length
+                    cache.WriteByte((byte) (NewValue != null ? ((byte[]) NewValue).Length : 0));
+
+                    // Check if we have a new value
+                    if (NewValue != null)
+                    {
+                        // Write new value
+                        cache.Write((byte[]) NewValue, 0, ((byte[]) NewValue).Length);
+                    }
+
+                    // Write old value length
+                    cache.WriteByte((byte) (OldValue != null ? ((byte[]) OldValue).Length : 0));
+
+                    // Check if we have a old value
+                    if (OldValue != null)
+                    {
+                        // Write old value
+                        cache.Write((byte[]) OldValue, 0, ((byte[]) OldValue).Length);
+                    }
+
+                    break;
+                }
+                case TDSEnvChangeTokenType.BeginTransaction:
                     {
                         // Write new value length
                         cache.WriteByte((byte)(NewValue != null ? ((byte[])NewValue).Length : 0));
@@ -309,22 +333,28 @@ namespace Microsoft.SqlServer.TDS.EnvChange
                             cache.Write((byte[])NewValue, 0, ((byte[])NewValue).Length);
                         }
 
-                        // Write old value length
+                        cache.WriteByte(0);
+                        break;
+                    }
+                case TDSEnvChangeTokenType.CommitTransaction:
+                    {
+                        // Write new value length
+                        cache.WriteByte(0);
+
                         cache.WriteByte((byte)(OldValue != null ? ((byte[])OldValue).Length : 0));
 
-                        // Check if we have a old value
+                        // Check if we have a new value
                         if (OldValue != null)
                         {
-                            // Write old value
+                            // Write new value
                             cache.Write((byte[])OldValue, 0, ((byte[])OldValue).Length);
                         }
-
                         break;
                     }
                 default:
-                    {
-                        throw new Exception("Unrecognized environment change type");
-                    }
+                {
+                    throw new Exception("Unrecognized environment change type");
+                }
             }
 
             // Write token identifier

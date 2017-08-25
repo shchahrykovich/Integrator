@@ -1,0 +1,19 @@
+{
+  "query": "dbo.getallusers",
+  "records": [
+    {
+      "SqlColumn": [
+        {
+          "Name": "Id",
+          "Value": "1",
+          "Type": "int"
+        },
+        {
+          "Name": "Name",
+          "Value": "Bob",
+          "Type": "string"
+        }
+      ]
+    }
+  ]
+}

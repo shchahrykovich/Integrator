@@ -33,16 +33,37 @@ namespace TestApp
 
         private static int RunCommand(String cmd)
         {
-            var connestionString =
+            var connectionString =
                 "Data Source=localhost,56434;Initial Catalog=UserProfiles;Timeout=60000;Encrypt=False;";
 
             Console.WriteLine("Executing: " + cmd);
 
             switch (cmd)
             {
+                case "execute-transaction":
+                {
+                    using (SqlConnection connection = new SqlConnection(connectionString))
+                    {
+                        connection.Open();
+
+                        SqlTransaction transaction = connection.BeginTransaction("Transaction1");
+
+                        SqlCommand command = connection.CreateCommand();
+                        command.Transaction = transaction;
+
+                        command.CommandText = "insert into Table (Name) VALUES ('Bob')";
+                        command.ExecuteNonQuery();
+
+                        command.CommandText = "insert into Table (Name) VALUES ('Joe')";
+                        command.ExecuteNonQuery();
+
+                        transaction.Commit();
+                    }
+                    break;
+                }
                 case "execute-reader-with-parameters":
                     {
-                        using (SqlConnection conn = new SqlConnection(connestionString))
+                        using (SqlConnection conn = new SqlConnection(connectionString))
                         using (SqlCommand command = new SqlCommand())
                         {
                             command.Connection = conn;
@@ -80,7 +101,7 @@ namespace TestApp
 
                 case "execute-scalar":
                 {
-                    using (SqlConnection conn = new SqlConnection(connestionString))
+                    using (SqlConnection conn = new SqlConnection(connectionString))
                     using (SqlCommand command = new SqlCommand())
                     {
                         command.Connection = conn;
@@ -102,7 +123,7 @@ namespace TestApp
                 }
                 case "execute-non-query":
                 {
-                    using (SqlConnection conn = new SqlConnection(connestionString))
+                    using (SqlConnection conn = new SqlConnection(connectionString))
                     using (SqlCommand command = new SqlCommand())
                     {
                         command.Connection = conn;
@@ -124,7 +145,7 @@ namespace TestApp
                 }
                 case "user-profile":
                 {
-                    using (SqlConnection conn = new SqlConnection(connestionString))
+                    using (SqlConnection conn = new SqlConnection(connectionString))
                     using (SqlCommand command = new SqlCommand())
                     {
                         command.Connection = conn;

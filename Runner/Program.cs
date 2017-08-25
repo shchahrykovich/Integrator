@@ -77,10 +77,14 @@ namespace Runner
                 {
                     var p = Process.Start(t.Cmd, String.Join(" ", t.Args));
                     p.WaitForExit();
-                    if(0 != p.ExitCode)
+                    if (0 != p.ExitCode)
                     {
                         Debugger.Break();
                     }
+                }
+                else
+                {
+                    WaitHandle.WaitAll(new WaitHandle[] { Source.Token.WaitHandle });
                 }
 
                 foreach (var endpoint in endpoints)
@@ -88,8 +92,6 @@ namespace Runner
                     endpoint.Stop();
                 }
             }
-
-            //WaitHandle.WaitAll(new WaitHandle[] {Source.Token.WaitHandle});
         }
     }
 }

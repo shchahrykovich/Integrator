@@ -11,6 +11,7 @@ using Microsoft.SqlServer.TDS.SQLBatch;
 using Microsoft.SqlServer.TDS.SSPI;
 using Microsoft.SqlServer.TDS.Authentication;
 using TDS.RPC;
+using TDS.Transactions;
 
 namespace Microsoft.SqlServer.TDS
 {
@@ -323,6 +324,11 @@ namespace Microsoft.SqlServer.TDS
                 case TDSMessageType.RPC:
                 {
                     Add(new TDSRPCRequestToken(_dataStream));
+                    break;
+                }
+                case TDSMessageType.TransactionManager:
+                {
+                    Add(new TDSTransMgrReqToken(_dataStream));
                     break;
                 }
                 default:

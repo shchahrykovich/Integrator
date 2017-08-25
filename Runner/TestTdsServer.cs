@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 
 namespace System.Data.SqlClient.Tests
 {
-    internal class TestTdsServer : GenericTDSServer, IDisposable
+    public class TestTdsServer : GenericTDSServer, IDisposable
     {
         private TDSServerEndPoint _endpoint = null;
 
@@ -23,7 +23,7 @@ namespace System.Data.SqlClient.Tests
             this.Engine = engine;
         }
 
-        public static TestTdsServer StartServerWithQueryEngine(QueryEngine engine, int port = 0, bool enableFedAuth = false, bool enableLog = false, [CallerMemberName] string methodName = "")
+        public static TestTdsServer StartServerWithQueryEngine(QueryEngine engine, int port = 0, int timeout = 600, bool enableFedAuth = false, bool enableLog = false, [CallerMemberName] string methodName = "")
         {
             TDSServerArguments args = new TDSServerArguments()
             {
@@ -42,14 +42,14 @@ namespace System.Data.SqlClient.Tests
             server._endpoint.EventLog = Console.Out;
             server._endpoint.Start();
 
-            server.connectionStringBuilder = new SqlConnectionStringBuilder() { DataSource = "localhost," + port, ConnectTimeout = 600, Encrypt = false };
+            server.connectionStringBuilder = new SqlConnectionStringBuilder() { DataSource = "localhost," + port, ConnectTimeout = timeout, Encrypt = false };
             server.ConnectionString = server.connectionStringBuilder.ConnectionString;
             return server;
         }
 
-        public static TestTdsServer StartTestServer(QueryEngine engine, int port = 0, bool enableFedAuth = false, bool enableLog = false, [CallerMemberName] string methodName = "")
+        public static TestTdsServer StartTestServer(QueryEngine engine, int port = 0, int timeout = 600, bool enableFedAuth = false, bool enableLog = false, [CallerMemberName] string methodName = "")
         {
-            return StartServerWithQueryEngine(engine, port, false, false, methodName);
+            return StartServerWithQueryEngine(engine, port, timeout, false, false, methodName);
         }
 
         public void Dispose() => _endpoint?.Stop();

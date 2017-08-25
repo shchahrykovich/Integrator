@@ -30,6 +30,7 @@ namespace Runner
 
             var arguments = new TDSServerArguments { Log = Console.Out };
             var engine = new StaticQueryEngine(arguments);
+            engine.Name = Path.GetFileName(_folder);
 
             foreach (var queries in Directory.GetFiles(_folder, "data-*"))
             {

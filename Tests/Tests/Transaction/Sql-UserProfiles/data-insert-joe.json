@@ -1,0 +1,4 @@
+{
+  "query": "insert into Table (Name) VALUES ('Joe')",
+  "records": [ ]
+}
