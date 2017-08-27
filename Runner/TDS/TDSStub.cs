@@ -6,17 +6,18 @@ using System.Threading;
 using System.Xml;
 using Microsoft.SqlServer.TDS.Servers;
 using Newtonsoft.Json;
+using YamlDotNet.Serialization;
 
 namespace Runner
 {
-    internal class SqlTestEndpoint : TestEndpoint
+    internal class TDSStub : ProtocolEndpoint
     {
         private readonly string _folder;
         private readonly CancellationToken _token;
         private TestTdsServer _server;
         private JsonSerializer _json;
 
-        public SqlTestEndpoint(string folder, CancellationToken token)
+        public TDSStub(string folder, CancellationToken token)
         {
             _folder = folder;
             _token = token;
@@ -32,28 +33,29 @@ namespace Runner
             var engine = new StaticQueryEngine(arguments);
             engine.Name = Path.GetFileName(_folder);
 
-            foreach (var queries in Directory.GetFiles(_folder, "data-*"))
+            Deserializer yamlDesirializer = new Deserializer();
+            foreach (var stubFiles in Directory.GetFiles(_folder, "*.yml"))
             {
-                using (var text = new StringReader(File.ReadAllText(queries)))
+                using (var text = new StringReader(File.ReadAllText(stubFiles)))
                 {
-                    using (var reader = new JsonTextReader(text))
-                    {
-                        var obj = _json.Deserialize<SqlTestData>(reader);
-                        engine.AddTestData(obj);
-                    }
+                    var sqlStub = yamlDesirializer.Deserialize<SqlStub>(text);
+                    sqlStub.FileName = stubFiles;
+                    sqlStub.Query = sqlStub.Query.TrimEnd().Replace("\n", "\r\n");
+
+                    engine.AddStub(sqlStub);
                 }
             }
 
             _server = TestTdsServer.StartTestServer(engine, port: settings.Port);
         }
 
-        private SqlTestEndpointSettings ReaderSettings()
+        private TDSStubSettings ReaderSettings()
         {
             using (var text = new StringReader(File.ReadAllText(Path.Combine(_folder, "parameters.json"))))
             {
                 using (var reader = new JsonTextReader(text))
                 {
-                    return _json.Deserialize<SqlTestEndpointSettings>(reader);
+                    return _json.Deserialize<TDSStubSettings>(reader);
                 }
             }
         }

@@ -59,6 +59,15 @@ namespace Microsoft.SqlServer.TDS.Row
                         // No data associated with it
                         return null;
                     }
+                case TDSDataType.DateTime2N:
+                {
+                    var length = (byte) source.ReadByte();
+                    var rawDate = new byte[length];
+                    source.Read(rawDate, 0, length);
+
+
+                    return null;
+                }
                 case TDSDataType.Bit:
                 case TDSDataType.Int1:
                     {

@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Runner
 {
-    public class SqlTestEndpointSettings
+    public class TDSStubSettings
     {
         public int Port { get; set; }
     }

@@ -52,14 +52,18 @@ namespace Runner
                     }
                 }
 
-                List<TestEndpoint> endpoints = new List<TestEndpoint>();
+                List<ProtocolEndpoint> endpoints = new List<ProtocolEndpoint>();
 
                 var rootDir = new DirectoryInfo(test);
                 foreach (var endpointDir in rootDir.GetDirectories("*", SearchOption.TopDirectoryOnly))
                 {
                     if (endpointDir.Name.StartsWith("Sql"))
                     {
-                        endpoints.Add(new SqlTestEndpoint(endpointDir.FullName, Source.Token));
+                        endpoints.Add(new TDSStub(endpointDir.FullName, Source.Token));
+                    }
+                    else if (endpointDir.Name.StartsWith("Amqp"))
+                    {
+                        endpoints.Add(new AMQPStub(endpointDir.FullName, Source.Token));
                     }
                 }
 

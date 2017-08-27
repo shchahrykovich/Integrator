@@ -18,11 +18,11 @@ namespace Runner
     {
         public String Name { get; set; }
 
-        private readonly Dictionary<String, SqlTestData> _data;
+        private readonly Dictionary<String, SqlStub> _stubs;
 
         public StaticQueryEngine(TDSServerArguments arguments) : base(arguments)
         {
-            _data = new Dictionary<string, SqlTestData>(StringComparer.OrdinalIgnoreCase);
+            _stubs = new Dictionary<string, SqlStub>(StringComparer.OrdinalIgnoreCase);
         }
 
         public override TDSMessageCollection ExecuteRPC(ITDSServerSession session, TDSMessage message)
@@ -44,17 +44,17 @@ namespace Runner
                     {
                         var sql = sqlQuery.Value.ToString();
                         PrintLog("Query - " + sql);
-                        if (_data.ContainsKey(sql))
+                        if (_stubs.ContainsKey(sql))
                         {
-                            var result = _data[sql];
-                            if (null != result.Records)
+                            var result = _stubs[sql];
+                            if (result.GetRecords().Any())
                             {
                                 var tokens = ReturnTable(result);
 
                                 // Create DONE token
                                 TDSDoneToken doneToken =
                                     new TDSDoneToken(TDSDoneTokenStatusType.Final | TDSDoneTokenStatusType.Count,
-                                        TDSDoneTokenCommandType.Select, (ulong) result.Records.Length);
+                                        TDSDoneTokenCommandType.Select, (ulong) result.GetRecords().Count());
                                 tokens.Add(doneToken);
 
                                 // Log response
@@ -72,18 +72,18 @@ namespace Runner
             {
                 var text = rpc.ProcName.ToLowerInvariant();
                 PrintLog("Executing - " + text);
-                if (_data.ContainsKey(text))
+                if (_stubs.ContainsKey(text))
                 {
-                    var result = _data[text];
+                    var result = _stubs[text];
 
-                    if (null != result.Records)
+                    if (result.GetRecords().Any())
                     {
                         var tokens = ReturnTable(result);
 
                         // Create DONE token
                         TDSDoneToken doneToken =
                             new TDSDoneToken(TDSDoneTokenStatusType.Final | TDSDoneTokenStatusType.Count,
-                                TDSDoneTokenCommandType.Select, (ulong) result.Records.Length);
+                                TDSDoneTokenCommandType.Select, (ulong) result.GetRecords().Count());
                         tokens.Add(doneToken);
 
                         // Log response
@@ -94,9 +94,8 @@ namespace Runner
                     }
                     else
                     {
-                        TDSDoneInProcToken doneIn =
-                            new TDSDoneInProcToken(TDSDoneTokenStatusType.Count, TDSDoneTokenCommandType.DoneInProc,
-                                result.RpcCount);
+                        TDSDoneInProcToken doneIn = 
+                            new TDSDoneInProcToken(TDSDoneTokenStatusType.Count, TDSDoneTokenCommandType.DoneInProc, result.RpcCount);
 
                         return new TDSMessageCollection(new TDSMessage(TDSMessageType.Response, doneIn));
                     }
@@ -110,77 +109,49 @@ namespace Runner
             Console.WriteLine(" --- " + Name + " --- " + message);
         }
 
-        private List<TDSPacketToken> ReturnTable(SqlTestData result)
+        private List<TDSPacketToken> ReturnTable(SqlStub result)
         {
             List<TDSPacketToken> tokens = new List<TDSPacketToken>();
-            
 
-            if (0 < result.Records.Length)
+            var records = result.GetRecords().ToArray();
+            if (0 < records.Length)
             {
                 TDSColMetadataToken metadataToken = new TDSColMetadataToken();
                 tokens.Add(metadataToken);
 
-                foreach (var columnData in result.Records.First().SqlColumn)
+                foreach (var columnDefinition in result.GetColumns())
                 {
                     TDSColumnData column = new TDSColumnData();
 
-                    if (columnData.Type == "string")
+                    column.DataType = columnDefinition.Type;
+                    column.Flags.Updatable = TDSColumnDataUpdatableFlag.ReadOnly;
+
+                    if (columnDefinition.Type == TDSDataType.NVarChar)
                     {
-                        column.DataType = TDSDataType.NVarChar;
-                        column.DataTypeSpecific =
-                            new TDSShilohVarCharColumnSpecific(10000,
-                                new TDSColumnDataCollation(13632521, 52));
-                        column.Flags.Updatable = TDSColumnDataUpdatableFlag.ReadOnly;
+                        column.DataTypeSpecific = new TDSShilohVarCharColumnSpecific((ushort)columnDefinition.Size,
+                            new TDSColumnDataCollation(13632521, 52));
                     }
-                    else if (columnData.Type == "int")
+                    else
                     {
-                        column.DataType = TDSDataType.IntN;
-                        column.DataTypeSpecific = (byte) 4;
-                        column.Flags.Updatable = TDSColumnDataUpdatableFlag.ReadOnly;
-                        column.Flags.IsComputed = true;
-                        column.Flags.IsNullable =
-                            true; // TODO: Must be nullable, otherwise something is wrong with SqlClient
-                    }
-                    else if (columnData.Type == "byte")
-                    {
-                        column.DataType = TDSDataType.IntN;
-                        column.DataTypeSpecific = (byte) 1;
-                        column.Flags.Updatable = TDSColumnDataUpdatableFlag.ReadOnly;
+                        column.DataTypeSpecific = (byte) columnDefinition.Size;
                         column.Flags.IsComputed = true;
                         column.Flags.IsNullable =
                             true; // TODO: Must be nullable, otherwise something is wrong with SqlClient
                     }
 
-                    column.Name = columnData.Name;
+                    column.Name = columnDefinition.Name;
                     metadataToken.Columns.Add(column);
                 }
 
-                foreach (var recordData in result.Records)
+                foreach (var recordData in records)
                 {
-                    // Log response
-                    TDSUtilities.Log(Log, "Response", metadataToken);
-
-                    // Prepare result data
                     TDSRowToken rowToken = new TDSRowToken(metadataToken);
 
-                    foreach (var columnData in recordData.SqlColumn)
+                    foreach (var value in recordData)
                     {
-                        if (columnData.Type == "string")
-                        {
-                            rowToken.Data.Add(columnData.Value);
-                        }
-                        else if (columnData.Type == "int")
-                        {
-                            rowToken.Data.Add(Int32.Parse(columnData.Value));
-                        }
-                        else if (columnData.Type == "byte")
-                        {
-                            rowToken.Data.Add((byte)Int32.Parse(columnData.Value));
-                        }
-
-                        // Log response
-                        TDSUtilities.Log(Log, "Response", rowToken);
+                        rowToken.Data.Add(value);
                     }
+
                     tokens.Add(rowToken);
                 }
             }
@@ -192,18 +163,19 @@ namespace Runner
             string lowerBatchText = batchRequest.Text.ToLowerInvariant();
             PrintLog(lowerBatchText);
 
-            if (_data.ContainsKey(lowerBatchText))
+            if (_stubs.ContainsKey(lowerBatchText))
             {
                 List<TDSPacketToken> tokens = new List<TDSPacketToken>();
                 TDSColMetadataToken metadataToken = new TDSColMetadataToken();
                 tokens.Add(metadataToken);
 
-                var result = _data[lowerBatchText];
+                var result = _stubs[lowerBatchText];
 
                 tokens.AddRange(ReturnTable(result));
 
                 // Create DONE token
-                TDSDoneToken doneToken = new TDSDoneToken(TDSDoneTokenStatusType.Final | TDSDoneTokenStatusType.Count, TDSDoneTokenCommandType.Select, (ulong)result.Records.Length);
+                TDSDoneToken doneToken = new TDSDoneToken(TDSDoneTokenStatusType.Final | TDSDoneTokenStatusType.Count, 
+                    TDSDoneTokenCommandType.Select, (ulong)result.GetRecords().Count());
                 tokens.Add(doneToken);
 
                 // Log response
@@ -216,9 +188,9 @@ namespace Runner
             return base.CreateQueryResponse(session, batchRequest);
         }
 
-        public void AddTestData(SqlTestData sqlTestData)
+        public void AddStub(SqlStub stub)
         {
-            _data.Add(sqlTestData.Query.ToLowerInvariant(), sqlTestData);
+            _stubs.Add(stub.Query, stub);
         }
     }
 }

@@ -1,4 +1,0 @@
-{
-  "query": "insert into Table (Name) VALUES ('Bob')",
-  "records": [ ]
-}

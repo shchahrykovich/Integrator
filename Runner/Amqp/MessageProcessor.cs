@@ -2,7 +2,7 @@
 
 namespace Queue
 {
-    internal class MessageProcessor : IMessageProcessor
+    public class MessageProcessor : IMessageProcessor
     {
         public int Credit => throw new System.NotImplementedException();
 

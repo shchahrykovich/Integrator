@@ -1,4 +1,0 @@
-{
-  "cmd": "\"C:\\Program Files\\dotnet\\dotnet.exe\"",
-  "args": ["\"C:\\Projects\\Integrator\\Tests\\TestApp\\bin\\Debug\\netcoreapp2.0\\TestApp.dll\"", "execute-non-query"]
-}

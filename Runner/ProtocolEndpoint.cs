@@ -1,6 +1,6 @@
 ﻿namespace Runner
 {
-    internal abstract class TestEndpoint
+    public abstract class ProtocolEndpoint
     {
         public abstract void Start();
 
