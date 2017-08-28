@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Runner.AzureBlobService;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -64,6 +65,10 @@ namespace Runner
                     else if (endpointDir.Name.StartsWith("Amqp"))
                     {
                         endpoints.Add(new AMQPStub(endpointDir.FullName, Source.Token));
+                    }
+                    else if (endpointDir.Name.StartsWith("AzureBlobService"))
+                    {
+                        endpoints.Add(new AzureBlobServiceStub(endpointDir.FullName, Source.Token));
                     }
                 }
 
