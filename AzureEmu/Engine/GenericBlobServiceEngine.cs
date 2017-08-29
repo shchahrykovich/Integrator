@@ -39,7 +39,7 @@ namespace AzureEmu.Engine
             var blob = new Blob(blobName, content);
             _storage.AddOrUpdate(containerName, new Container(blob), (name, c) =>
             {
-                c.Update(blob);
+                c.Add(blob);
                 return c;
             });
         }
@@ -52,6 +52,21 @@ namespace AzureEmu.Engine
         public Container CreateContainer(String name)
         {
             return _storage.AddOrUpdate(name, new Container {Name = name}, (n, c) => c);
+        }
+
+        public void Add(string containerName, string blobName, byte[] bytes)
+        {
+            var container = new Container
+            {
+                Name = containerName
+            };
+            if(!_storage.TryAdd(containerName, container))
+            {
+                container = _storage[containerName];
+            }
+
+            var blob = new Blob(blobName, bytes);
+            container.Add(blob);
         }
     }
 }

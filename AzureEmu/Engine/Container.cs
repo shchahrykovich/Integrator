@@ -35,7 +35,7 @@ namespace AzureEmu.Engine
             return _storage.ContainsKey(blobName);
         }
 
-        public void Update(Blob blob)
+        public void Add(Blob blob)
         {
             _storage.AddOrUpdate(blob.Path, blob, (name, b) => b);
         }
