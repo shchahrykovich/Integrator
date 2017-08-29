@@ -6,7 +6,6 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using Microsoft.SqlServer.TDS;
-using YamlDotNet.Serialization;
 
 namespace Runner
 {
@@ -19,16 +18,13 @@ namespace Runner
 
         private List<Object[]> _records;
 
-        [YamlMember(Alias = "query")]
         public String Query { get; set; }
 
-        [YamlMember(Alias = "table")]
         public String Table { get; set; }
 
-        [YamlMember(Alias = "rpcCount")]
         public ulong RpcCount { get; set; }
 
-        [YamlIgnore]
+        [YamlDotNet.Serialization.YamlIgnore]
         public string FileName { get; set; }
 
         public IEnumerable<Object[]> GetRecords()

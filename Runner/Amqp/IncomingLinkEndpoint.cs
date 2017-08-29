@@ -2,6 +2,7 @@
 using Amqp.Framing;
 using Amqp.Listener;
 using System.Threading;
+using System;
 using Runner.Amqp;
 using System.Collections.Concurrent;
 
@@ -19,6 +20,7 @@ namespace Runner
 
         public override void OnMessage(MessageContext messageContext)
         {
+            // this can also be done when an async operation, if required, is done
             messageContext.Complete();
         }
 
@@ -32,6 +34,7 @@ namespace Runner
                     var message = new Message(data.Body);
                     message.Properties = new Properties() { Subject = "Message" + Interlocked.Increment(ref this._id) };
                     flowContext.Link.SendMessage(message);
+
                     if (!data.Batched)
                     {
                         return;

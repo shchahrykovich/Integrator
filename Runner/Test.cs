@@ -7,7 +7,6 @@ namespace Runner
     public class Test
     {
         public String Cmd { get; set; }
-
         public String[] Args { get; set; }
     }
 }
