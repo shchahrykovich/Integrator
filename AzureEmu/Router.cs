@@ -42,7 +42,7 @@ namespace AzureEmu
             {
                 data.Values["controller"] = "Blob";
                 data.Values["container"] = parts[0];
-                data.Values["blob"] = path.ToString().Replace(parts[0] + "/", "");
+                data.Values["blob"] = path.ToString().Replace(parts[0] + "/", "").Replace("//", "/");
             }
             data.Values["action"] = request.Method;
 

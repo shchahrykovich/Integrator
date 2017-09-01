@@ -160,7 +160,7 @@ namespace TDS.RPC
                     }
             }
 
-            Microsoft.SqlServer.TDS.Row.TDSRowTokenBase.DeflateTypeVarByte(destination, DataType, Value);
+            Microsoft.SqlServer.TDS.Row.TDSRowTokenBase.DeflateTypeVarByte(destination, DataType, Value, DataTypeSpecific);
         }
     }
 }

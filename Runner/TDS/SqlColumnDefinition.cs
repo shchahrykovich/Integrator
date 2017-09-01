@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using Microsoft.SqlServer.TDS;
 
-namespace Runner
+namespace Runner.TDS
 {
     [DebuggerDisplay("{Name} {Type}({Size})")]
     public class SqlColumnDefinition

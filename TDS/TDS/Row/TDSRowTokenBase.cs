@@ -59,14 +59,26 @@ namespace Microsoft.SqlServer.TDS.Row
                         // No data associated with it
                         return null;
                     }
+                case TDSDataType.DateTime:
+                {
+                    int daypart = TDSUtilities.ReadInt(source);
+                    uint timepart = TDSUtilities.ReadUInt(source);
+                    return null;
+                }
                 case TDSDataType.DateTime2N:
                 {
                     var length = (byte) source.ReadByte();
                     var rawDate = new byte[length];
                     source.Read(rawDate, 0, length);
-
-
-                    return null;
+                    uint secondIncrements = 0;
+                    for (int i = 0; i < length - 3; i++)
+                    {
+                        secondIncrements += (uint) (rawDate[i] << (8 * i));
+                    }
+                    var days = (uint) rawDate[length - 3] + (uint) (rawDate[length - 2] << 8) +
+                              (uint) (rawDate[length - 1] << 16);
+                    var date = new DateTime(1, 1, 1).AddDays(days).AddSeconds(secondIncrements*Math.Pow(10, -1 * 5));
+                    return date;
                 }
                 case TDSDataType.Bit:
                 case TDSDataType.Int1:
@@ -387,10 +399,10 @@ namespace Microsoft.SqlServer.TDS.Row
         /// <param name="data">Column value</param>
         protected virtual void DeflateColumn(Stream destination, TDSColumnData column, object data)
         {
-            DeflateTypeVarByte(destination, column.DataType, data);
+            DeflateTypeVarByte(destination, column.DataType, data, column.DataTypeSpecific);
         }
 
-        public static void DeflateTypeVarByte(Stream destination, TDSDataType column, object data)
+        public static void DeflateTypeVarByte(Stream destination, TDSDataType column, object data, Object dataTypeSpecific)
         {
             // Dispatch further reading based on the type
             switch (column)
@@ -400,6 +412,49 @@ namespace Microsoft.SqlServer.TDS.Row
                         // No data associated with it
                         break;
                     }
+                case TDSDataType.DateTime2N:
+                {
+                    DateTime date = (DateTime) data;
+                    uint days = (uint) (date - new DateTime(1, 1, 1)).TotalDays;
+                    var seconds = (int) (date - new DateTime(date.Year, date.Month, date.Day)).TotalSeconds;
+                    ulong scaledSeconds;
+                    switch ((byte) dataTypeSpecific)
+                    {
+                        case 1:
+                        case 2:
+                            destination.WriteByte(6);
+
+                            scaledSeconds = (ulong) (seconds * Math.Pow(10, 3));
+                            destination.WriteByte((byte) scaledSeconds);
+                            destination.WriteByte((byte) (scaledSeconds >> 8));
+                            destination.WriteByte((byte) (scaledSeconds >> 16));
+                            break;
+                        case 3:
+                        case 4:
+                            destination.WriteByte(7);
+                            scaledSeconds = (ulong) (seconds * Math.Pow(10, 4));
+                            destination.WriteByte((byte)scaledSeconds);
+                            destination.WriteByte((byte)(scaledSeconds >> 8));
+                            destination.WriteByte((byte)(scaledSeconds >> 16));
+                            destination.WriteByte((byte)(scaledSeconds >> 24));
+                                break;
+                        case 5:
+                        case 6:
+                        case 7:
+                            destination.WriteByte(8);
+                            scaledSeconds = (ulong) (seconds * Math.Pow(10, 5));
+                            destination.WriteByte((byte)scaledSeconds);
+                            destination.WriteByte((byte)(scaledSeconds >> 8));
+                            destination.WriteByte((byte)(scaledSeconds >> 16));
+                            destination.WriteByte((byte)(scaledSeconds >> 24));
+                            destination.WriteByte((byte)(scaledSeconds >> 32));
+                                break;
+                    }
+                    destination.WriteByte((byte) days);
+                    destination.WriteByte((byte) (days >> 8));
+                    destination.WriteByte((byte) (days >> 16));
+                    break;
+                }
                 case TDSDataType.Bit:
                     {
                         destination.WriteByte((byte)((bool)data ? 1 : 0));
@@ -593,6 +648,28 @@ namespace Microsoft.SqlServer.TDS.Row
 
                         break;
                     }
+                case TDSDataType.Xml:
+                {
+                    // Check if data is available
+                    if (data == null)
+                    {
+                        // No data
+                        TDSUtilities.WriteUShort(destination, 0xFFFF);
+                    }
+                    else
+                    {
+                        // Get bytes
+                        byte[] bytes = Encoding.UTF8.GetBytes((string)data);
+
+                        // One data length
+                        TDSUtilities.WriteUShort(destination, (ushort)bytes.Length);
+
+                        // Data
+                        destination.Write(bytes, 0, bytes.Length);
+                    }
+
+                    break;
+                }
                 default:
                     {
                         // We don't know this type

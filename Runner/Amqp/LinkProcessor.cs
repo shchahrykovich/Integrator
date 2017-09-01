@@ -1,6 +1,6 @@
 ﻿using Amqp.Listener;
 
-namespace Runner
+namespace Runner.Amqp
 {
     internal class LinkProcessor : ILinkProcessor
     {

@@ -1,16 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 using System.Diagnostics;
-using System.Dynamic;
-using System.Globalization;
 using System.Linq;
-using System.Text;
 using Microsoft.SqlServer.TDS;
 
-namespace Runner
+namespace Runner.TDS
 {
-    [DebuggerDisplay("{FileName} - {Query}")]
-    public class SqlStub
+    [DebuggerDisplay("{FilePath} - {Query}")]
+    public class SqlStub : Stub
     {
         private static char[] ColumnSeparator = new[] {'\t'};
 
@@ -22,16 +20,31 @@ namespace Runner
 
         public String Table { get; set; }
 
-        public ulong RpcCount { get; set; }
+        public ulong Scalar { get; set; }
 
-        [YamlDotNet.Serialization.YamlIgnore]
-        public string FileName { get; set; }
+        public Dictionary<String, Object> Parameters { get; set; }
 
         public IEnumerable<Object[]> GetRecords()
         {
             if (null == _records)
             {
-                _records = new List<object[]>(GetRecordsInternal());
+                try
+                {
+                    if (null == Table)
+                    {
+                        _records = new List<object[]>();
+                    }
+                    else
+                    {
+                        _records = new List<object[]>(GetRecordsInternal());
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                    throw;
+                }
+                
             }
 
             return _records;
@@ -40,59 +53,109 @@ namespace Runner
         private IEnumerable<Object[]> GetRecordsInternal()
         {
             var columns = GetColumns().ToArray();
-            foreach (var row in Table.Split("\n", StringSplitOptions.RemoveEmptyEntries).Skip(1))
+            foreach (var row in Table.Split("\r\n", StringSplitOptions.RemoveEmptyEntries).Skip(1))
             {
                 var result = new Object[columns.Length];
                 var record = row.Split(ColumnSeparator).ToArray();
                 for (int i = 0; i < record.Length; i++)
                 {
-
-                    var column = columns[i];
-                    switch (column.Type)
+                    try
                     {
-                        case TDSDataType.Int4:
-                        case TDSDataType.Int1:
-                        case TDSDataType.Int2:
-                        case TDSDataType.IntN:
-                        case TDSDataType.Int8:
-                        {
-                            switch (column.Size)
-                            {
-                                case 1:
-                                {
-                                    result[i] = (byte) int.Parse(record[i]);
-                                    break;
-                                }
-                                case 2:
-                                {
-                                    result[i] = (short) int.Parse(record[i]);
-                                    break;
-                                }
-                                case 4:
-                                {
-                                    result[i] = int.Parse(record[i]);
-                                    break;
-                                }
-                                case 8:
-                                {
-                                    result[i] = long.Parse(record[i]);
-                                    break;
-                                }
-                                    default:
-                                        throw new NotImplementedException("Can't convert size - " + column.Size);
-                                }
-                                break;
-                        }
-                        case TDSDataType.NVarChar:
-                        {
-                            result[i] = record[i];
-                            break;
-                        }
-                        default:
-                            throw new NotImplementedException("Can't parse type " + column.Type);
+                        result[i] = GetValue(columns[i], record[i]);
                     }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine("Can't parse " + columns[i].Name + " (" + columns[i].Type.ToString() + ")");
+                        Console.WriteLine(e);
+                        throw;
+                    }
+                    
                 }
                 yield return result;
+            }
+        }
+
+        private static Object GetValue(SqlColumnDefinition column, string value)
+        {
+            if (0 == String.Compare(value, "null", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            switch (column.Type)
+            {
+                case TDSDataType.Int4:
+                case TDSDataType.Int1:
+                case TDSDataType.Int2:
+                case TDSDataType.IntN:
+                case TDSDataType.Int8:
+                {
+                    switch (column.Size)
+                    {
+                        case 1:
+                        {
+                            return (byte) int.Parse(value);
+                        }
+                        case 2:
+                        {
+                            return (short) int.Parse(value);
+                        }
+                        case 4:
+                        {
+                            return int.Parse(value);
+                        }
+                        case 8:
+                        {
+                            return long.Parse(value);
+                        }
+                        default:
+                            throw new NotImplementedException("Can't convert size - " + column.Size);
+                    }
+                }
+                case TDSDataType.BigVarBinary:
+                {
+                    var array = value.Substring(2).ToCharArray();
+                    return Convert.FromBase64CharArray(array, 0, array.Length);
+                }
+                case TDSDataType.Guid:
+                {
+                    return Guid.Parse(value);
+                }
+                case TDSDataType.Xml:
+                {
+                    return value;
+                }
+                case TDSDataType.MoneyN:
+                case TDSDataType.DecimalN:
+                {
+                    return decimal.Parse(value);
+                }
+                case TDSDataType.Bit:
+                {
+                    if (value == "0")
+                    {
+                        return false;
+                    }
+                    else if (value == "1")
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        return bool.Parse(value);
+                    }
+                }
+                case TDSDataType.NVarChar:
+                {
+                    return value;
+                }
+                case TDSDataType.DateTime:
+                case TDSDataType.DateTime2N:
+                    {
+                    return DateTime.Parse(value);
+                }
+                default:
+                    throw new NotImplementedException("Can't parse type " + column.Type);
             }
         }
 
@@ -109,7 +172,7 @@ namespace Runner
         {
             if (!String.IsNullOrEmpty(Table))
             {
-                var header = Table.Split("\n").First();
+                var header = Table.Split("\r\n").First();
                 foreach (var rawColumnName in header.Split(ColumnSeparator, StringSplitOptions.RemoveEmptyEntries))
                 {
                     if (rawColumnName.Contains("/"))
@@ -147,6 +210,27 @@ namespace Runner
 
         private bool TryGuess(SqlColumnDefinition column, string columnName)
         {
+            if (columnName.StartsWith("date", StringComparison.OrdinalIgnoreCase) ||
+                columnName.EndsWith("date", StringComparison.OrdinalIgnoreCase))
+            {
+                column.Name = columnName;
+                column.Type = TDSDataType.DateTime2N;
+                column.Size = 7;
+
+                return true;
+            }
+
+
+            if (columnName.StartsWith("guid", StringComparison.OrdinalIgnoreCase) ||
+                columnName.EndsWith("guid", StringComparison.OrdinalIgnoreCase))
+            {
+                column.Name = columnName;
+                column.Type = TDSDataType.Guid;
+                column.Size = 16;
+
+                return true;
+            }
+
             if (columnName.StartsWith("id", StringComparison.OrdinalIgnoreCase) ||
                 columnName.EndsWith("id", StringComparison.OrdinalIgnoreCase))
             {
@@ -170,14 +254,66 @@ namespace Runner
                     column.Size = 4;
                     break;
                 }
+                case "bit":
+                {
+                    column.Type = TDSDataType.Bit;
+                    break;
+                }
                 case "tinyint":
                 {
                     column.Type = TDSDataType.IntN;
                     column.Size = 1;
                     break;
                 }
+                case "bigint":
+                {
+                    column.Type = TDSDataType.IntN;
+                    column.Size = 8;
+                    break;
+                }
+                case "datetime":
+                {
+                    column.Type = TDSDataType.DateTime2N;
+                    column.Size = 7;
+                    break;
+                }
+                case "smallint":
+                {
+                    column.Type = TDSDataType.Int2;
+                    column.Size = 2;
+                    break;
+                }
+                case "nvarchar":
+                {
+                    column.Type = TDSDataType.NVarChar;
+                    column.Size = 1000;
+                    break;
+                }
+                case "varbinary":
+                {
+                    column.Type = TDSDataType.BigVarBinary;
+                    column.Size = 1000;
+                    break;
+                }
+                case "money":
+                {
+                    column.Type = TDSDataType.MoneyN;
+                    column.Size = 8;
+                    break;
+                }
+                case "decimal":
+                {
+                    column.Type = TDSDataType.DecimalN;
+                    break;
+                }
+                case "xml":
+                {
+                    column.Type = TDSDataType.Xml;
+                    column.Size = 4000;
+                    break;
+                }
                 default:
-                    throw new NotImplementedException("Can't understand type " + type);
+                    throw new NotImplementedException("Can't understand type " + type + ".");
             }
         }
     }

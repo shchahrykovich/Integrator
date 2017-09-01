@@ -303,6 +303,7 @@ namespace Microsoft.SqlServer.TDS.ColMetadata
                 case TDSDataType.Xml:
                     {
                         // cb = sizeof(lpColFmt->YukonXmlType.bSchemaPresent);
+                        destination.WriteByte(0);
                         break;
                     }
             }

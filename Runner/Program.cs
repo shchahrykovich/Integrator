@@ -1,7 +1,4 @@
-﻿using Newtonsoft.Json;
-using Runner.AzureBlobService;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
@@ -35,49 +32,18 @@ namespace Runner
                     continue;
                 }
 
+                Test t = TestLoader.Load(test, Source.Token);
+
                 Console.WriteLine("---------------------------------------");
-                Console.WriteLine("Executing - " + Path.GetFileName(test));
+                Console.WriteLine("Executing - " + Path.GetFileName(t.Name));
                 Console.WriteLine("---------------------------------------");
-
-                Test t = new Test();
-                var configFile = Path.Combine(test, "parameters.json");
-                if (File.Exists(configFile))
-                {
-                    var json = JsonSerializer.CreateDefault();
-                    using (var text = new StringReader(File.ReadAllText(configFile)))
-                    {
-                        using (var reader = new JsonTextReader(text))
-                        {
-                            t = json.Deserialize<Test>(reader);
-                        }
-                    }
-                }
-
-                List<ProtocolEndpoint> endpoints = new List<ProtocolEndpoint>();
-
-                var rootDir = new DirectoryInfo(test);
-                foreach (var endpointDir in rootDir.GetDirectories("*", SearchOption.TopDirectoryOnly))
-                {
-                    if (endpointDir.Name.StartsWith("Sql"))
-                    {
-                        endpoints.Add(new TDSStub(endpointDir.FullName, Source.Token));
-                    }
-                    else if (endpointDir.Name.StartsWith("Amqp"))
-                    {
-                        endpoints.Add(new AMQPStub(endpointDir.FullName, Source.Token));
-                    }
-                    else if (endpointDir.Name.StartsWith("AzureBlobService"))
-                    {
-                        endpoints.Add(new AzureBlobServiceStub(endpointDir.FullName, Source.Token));
-                    }
-                }
-
-                foreach (var endpoint in endpoints)
+                
+                foreach (var endpoint in t.Endpoints)
                 {
                     endpoint.Start();
                 }
 
-                foreach (var endpoint in endpoints)
+                foreach (var endpoint in t.Endpoints)
                 {
                     endpoint.PrintSettings();
                 }
@@ -96,7 +62,7 @@ namespace Runner
                     WaitHandle.WaitAll(new WaitHandle[] { Source.Token.WaitHandle });
                 }
 
-                foreach (var endpoint in endpoints)
+                foreach (var endpoint in t.Endpoints)
                 {
                     endpoint.Stop();
                 }

@@ -1,12 +1,10 @@
-﻿using Amqp;
+﻿using System.Collections.Concurrent;
+using System.Threading;
+using Amqp;
 using Amqp.Framing;
 using Amqp.Listener;
-using System.Threading;
-using System;
-using Runner.Amqp;
-using System.Collections.Concurrent;
 
-namespace Runner
+namespace Runner.Amqp
 {
     internal class IncomingLinkEndpoint : LinkEndpoint
     {

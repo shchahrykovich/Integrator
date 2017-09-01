@@ -1,6 +1,6 @@
 ﻿using Amqp.Listener;
 
-namespace Queue
+namespace Runner.Amqp
 {
     public class MessageProcessor : IMessageProcessor
     {

@@ -1,63 +1,39 @@
 using System;
-using System.Data.SqlClient.Tests;
 using System.IO;
-using System.Linq;
 using System.Threading;
-using System.Xml;
 using Microsoft.SqlServer.TDS.Servers;
-using Newtonsoft.Json;
-using YamlDotNet.Serialization;
+using Runner.Serialization;
 
-namespace Runner
+namespace Runner.TDS
 {
     internal class TDSStub : ProtocolEndpoint
     {
         private readonly string _folder;
         private readonly CancellationToken _token;
+        private readonly TDSStubSettings _settings;
         private TestTdsServer _server;
-        private JsonSerializer _json;
 
-        public TDSStub(string folder, CancellationToken token)
+        public TDSStub(string folder, 
+                       CancellationToken token, 
+                       TDSStubSettings settings)
         {
             _folder = folder;
             _token = token;
-            _json = JsonSerializer.CreateDefault();
+            _settings = settings;
         }
 
         public override void Start()
         {
-
-            var settings = ReaderSettings();
-
-            var arguments = new TDSServerArguments { Log = Console.Out };
+            var arguments = new TDSServerArguments {Log = Console.Out};
             var engine = new StaticQueryEngine(arguments);
             engine.Name = Path.GetFileName(_folder);
 
-            Deserializer yamlDesirializer = new Deserializer();
-            foreach (var stubFiles in Directory.GetFiles(_folder, "*.yml"))
+            foreach (var stub in FileSerializer.ReadStubs<SqlStub>(_folder))
             {
-                using (var text = new StringReader(File.ReadAllText(stubFiles)))
-                {
-                    var sqlStub = yamlDesirializer.Deserialize<SqlStub>(text);
-                    sqlStub.FileName = stubFiles;
-                    sqlStub.Query = sqlStub.Query.TrimEnd().Replace("\n", "\r\n");
-
-                    engine.AddStub(sqlStub);
-                }
+                engine.AddStub(stub);
             }
 
-            _server = TestTdsServer.StartTestServer(engine, port: settings.Port);
-        }
-
-        private TDSStubSettings ReaderSettings()
-        {
-            using (var text = new StringReader(File.ReadAllText(Path.Combine(_folder, "parameters.json"))))
-            {
-                using (var reader = new JsonTextReader(text))
-                {
-                    return _json.Deserialize<TDSStubSettings>(reader);
-                }
-            }
+            _server = TestTdsServer.StartTestServer(engine, port: _settings.Port, enableLog: false);
         }
 
         public override void Stop()
@@ -73,8 +49,7 @@ namespace Runner
         {
             if (null != _server)
             {
-                Console.WriteLine(Path.GetDirectoryName(_folder));
-                Console.WriteLine(_server.ConnectionString);
+                Console.WriteLine(Path.GetFileName(_folder) + " - " + _server.ConnectionString);
             }
         }
     }

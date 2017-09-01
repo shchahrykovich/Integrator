@@ -1,8 +1,8 @@
 using Microsoft.SqlServer.TDS.Servers;
 using System;
 using System.Data.SqlClient;
-using System.Data.SqlClient.Tests;
 using System.Diagnostics;
+using Runner.TDS;
 using Xunit;
 
 namespace Runner.Tests

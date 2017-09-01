@@ -3,12 +3,15 @@
 // See the LICENSE file in the project root for more information.
 
 
-using Microsoft.SqlServer.TDS.EndPoint;
-using Microsoft.SqlServer.TDS.Servers;
+using System;
+using System.Data.SqlClient;
+using System.IO;
 using System.Net;
 using System.Runtime.CompilerServices;
+using Microsoft.SqlServer.TDS.EndPoint;
+using Microsoft.SqlServer.TDS.Servers;
 
-namespace System.Data.SqlClient.Tests
+namespace Runner.TDS
 {
     public class TestTdsServer : GenericTDSServer, IDisposable
     {
@@ -39,7 +42,7 @@ namespace System.Data.SqlClient.Tests
             server._endpoint = new TDSServerEndPoint(server) { ServerEndPoint = new IPEndPoint(IPAddress.Any, port) };
             server._endpoint.EndpointName = methodName;
             // The server EventLog should be enabled as it logs the exceptions.
-            server._endpoint.EventLog = Console.Out;
+            server._endpoint.EventLog = enableLog ? Console.Out : TextWriter.Null;
             server._endpoint.Start();
 
             server.connectionStringBuilder = new SqlConnectionStringBuilder() { DataSource = "localhost," + port, ConnectTimeout = timeout, Encrypt = false };
@@ -49,7 +52,7 @@ namespace System.Data.SqlClient.Tests
 
         public static TestTdsServer StartTestServer(QueryEngine engine, int port = 0, int timeout = 600, bool enableFedAuth = false, bool enableLog = false, [CallerMemberName] string methodName = "")
         {
-            return StartServerWithQueryEngine(engine, port, timeout, false, false, methodName);
+            return StartServerWithQueryEngine(engine, port, timeout, false, enableLog, methodName);
         }
 
         public void Dispose() => _endpoint?.Stop();
