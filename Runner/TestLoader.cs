@@ -13,10 +13,8 @@ namespace Runner
         public static Test Load(string path, CancellationToken token)
         {
             var test = FileSerializer.ReadConfig<Test>(path, new Test());
-            test.Name = Path.GetFileName(path);
-            test.Folder = path;
 
-            var testDir = new DirectoryInfo(test.Folder);
+            var testDir = new DirectoryInfo(test.FolderPath);
             foreach (var endpointDir in testDir.GetDirectories("*", SearchOption.TopDirectoryOnly))
             {
                 if (Is(endpointDir, "Sql"))

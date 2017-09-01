@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
+using Runner.TDS;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NodeDeserializers;
 
@@ -43,7 +44,7 @@ namespace Runner.Serialization
             }
         }
 
-        public static TConfig ReadConfig<TConfig>(string testFolder, TConfig defaultConfig)
+        public static TConfig ReadConfig<TConfig>(string testFolder, TConfig defaultConfig) where TConfig: ProtocolEndpointSettings
         {
             TConfig result = defaultConfig;
 
@@ -59,6 +60,8 @@ namespace Runner.Serialization
                 }
             }
 
+            result.Name = Path.GetFileName(testFolder);
+            result.FolderPath = testFolder;
             return result;
         }
 

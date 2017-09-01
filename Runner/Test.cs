@@ -5,17 +5,11 @@ using Newtonsoft.Json;
 
 namespace Runner
 {
-    public class Test
+    public class Test: ProtocolEndpointSettings
     {
         public String Cmd { get; set; }
 
         public String[] Args { get; set; }
-
-        [JsonIgnore]
-        public string Name { get; set; }
-
-        [JsonIgnore]
-        public string Folder { get; set; }
 
         [JsonIgnore]
         public IEnumerable<ProtocolEndpoint> Endpoints => _endpoints;

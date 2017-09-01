@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Runner.AzureBlobService
 {
-    public class AzureBlobServiceStubSettings
+    public class AzureBlobServiceStubSettings : ProtocolEndpointSettings
     {
         public int Port { get; set; }
     }
