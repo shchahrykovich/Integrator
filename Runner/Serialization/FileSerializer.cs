@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
-using Runner.TDS;
 using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NodeDeserializers;
 
 namespace Runner.Serialization
 {
@@ -16,12 +14,17 @@ namespace Runner.Serialization
 
         private static readonly JsonSerializer Serializer = JsonSerializer.CreateDefault();
         private static readonly Deserializer YamlDesirializer = new DeserializerBuilder().Build();
+        private static readonly Serializer YamlSerializer = new SerializerBuilder().Build();
 
-        public static IEnumerable<TStub> ReadStubs<TStub>(string endpointFolder) where TStub: Stub
+        public static IEnumerable<TStub> ReadStubs<TStub>(string endpointFolder) where TStub : Stub
         {
             var stringProperties = typeof(TStub).GetProperties().Where(p => p.PropertyType == typeof(String)).ToArray();
             foreach (var stubFile in Directory.GetFiles(endpointFolder, StubFilePattern, SearchOption.AllDirectories))
             {
+                if (stubFile.Contains(@"\_Missing\"))
+                {
+                    continue;
+                }
                 using (var stubContent = new StringReader(File.ReadAllText(stubFile)))
                 {
                     var stub = YamlDesirializer.Deserialize<TStub>(stubContent);
@@ -44,7 +47,8 @@ namespace Runner.Serialization
             }
         }
 
-        public static TConfig ReadConfig<TConfig>(string testFolder, TConfig defaultConfig) where TConfig: ProtocolEndpointSettings
+        public static TConfig ReadConfig<TConfig>(string testFolder, TConfig defaultConfig)
+            where TConfig : ProtocolEndpointSettings
         {
             TConfig result = defaultConfig;
 
@@ -65,5 +69,26 @@ namespace Runner.Serialization
             return result;
         }
 
+        public static void WriteStub(string path, Stub stub)
+        {
+            var content = YamlSerializer.Serialize(stub);
+            if (File.Exists(path))
+            {
+                File.WriteAllText(path, content);
+            }
+            else
+            {
+                DirectoryInfo dir = new DirectoryInfo(Path.GetDirectoryName(path));
+                if (dir.Exists)
+                {
+                    File.WriteAllText(path, content);
+                }
+                else
+                {
+                    dir.Create();
+                    File.WriteAllText(path, content);
+                }
+            }
+        }
     }
 }

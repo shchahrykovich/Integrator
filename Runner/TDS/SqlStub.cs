@@ -301,6 +301,12 @@ namespace Runner.TDS
                     column.Size = 8;
                     break;
                 }
+                case "guid":
+                {
+                    column.Type = TDSDataType.Guid;
+                    column.Size = 16;
+                    break;
+                }
                 case "decimal":
                 {
                     column.Type = TDSDataType.DecimalN;

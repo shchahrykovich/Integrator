@@ -6,34 +6,28 @@ using Runner.Serialization;
 
 namespace Runner.TDS
 {
-    internal class TDSStub : ProtocolEndpoint
+    internal class TDSStub : ProtocolEndpoint<TDSStubSettings>
     {
-        private readonly string _folder;
-        private readonly CancellationToken _token;
-        private readonly TDSStubSettings _settings;
         private TestTdsServer _server;
+        private StaticQueryEngine _engine;
 
-        public TDSStub(string folder, 
-                       CancellationToken token, 
-                       TDSStubSettings settings)
+        public TDSStub(CancellationToken token, 
+                       TDSStubSettings settings): base(token, settings)
         {
-            _folder = folder;
-            _token = token;
-            _settings = settings;
         }
 
         public override void Start()
         {
             var arguments = new TDSServerArguments {Log = Console.Out};
-            var engine = new StaticQueryEngine(arguments);
-            engine.Name = Path.GetFileName(_folder);
+            _engine = new StaticQueryEngine(arguments);
+            _engine.Name = Settings.Name;
 
-            foreach (var stub in FileSerializer.ReadStubs<SqlStub>(_folder))
+            foreach (var stub in FileSerializer.ReadStubs<SqlStub>(Settings.FolderPath))
             {
-                engine.AddStub(stub);
+                _engine.AddStub(stub);
             }
 
-            _server = TestTdsServer.StartTestServer(engine, port: _settings.Port, enableLog: false);
+            _server = TestTdsServer.StartTestServer(_engine, port: Settings.Port, enableLog: false);
         }
 
         public override void Stop()
@@ -45,12 +39,20 @@ namespace Runner.TDS
             }
         }
 
-        public override void PrintSettings()
+        public override void PrintSettings(TextWriter log)
         {
             if (null != _server)
             {
-                Console.WriteLine(Path.GetFileName(_folder) + " - " + _server.ConnectionString);
+                log.WriteLine(Settings.Name + " - " + _server.ConnectionString);
             }
+        }
+
+        public override TestExecutionStats GetStats()
+        {
+            TestExecutionStats stats = new TestExecutionStats();
+            stats.AddMissingStubs(_engine.GetMissingStubs());
+
+            return stats;
         }
     }
 }

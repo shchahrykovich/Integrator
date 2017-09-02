@@ -9,40 +9,36 @@ using Runner.Serialization;
 
 namespace Runner.AzureBlobService
 {
-    public class AzureBlobServiceStub : ProtocolEndpoint
+    public class AzureBlobServiceStub : ProtocolEndpoint<AzureBlobServiceStubSettings>
     {
-        private string _folder;
-        private CancellationToken _token;
         private AzureHost _host;
-        private readonly AzureBlobServiceStubSettings _settings;
 
-        public AzureBlobServiceStub(string folder, CancellationToken token, AzureBlobServiceStubSettings settings)
+        public AzureBlobServiceStub(CancellationToken token, AzureBlobServiceStubSettings settings) : base(token, settings)
         {
-            _folder = folder;
-            _token = token;
-            _settings = settings;
             _host = new AzureHost();
         }
 
-        public override void PrintSettings()
+        public override void PrintSettings(TextWriter log)
         {
-            if(null != _settings)
-            {
-                Console.WriteLine(Path.GetFileName(_folder) + " - http://localhost:" + _settings.Port);
-            }
+            log.WriteLine(Settings.Name + " - http://localhost:" + Settings.Port);
+        }
+
+        public override TestExecutionStats GetStats()
+        {
+            return new TestExecutionStats();
         }
 
         public override void Start()
         {
             var engine = new GenericBlobServiceEngine();
-            foreach (var stub in FileSerializer.ReadStubs<BlobFileStub>(_folder))
+            foreach (var stub in FileSerializer.ReadStubs<BlobFileStub>(Settings.FolderPath))
             {
                 var containerName = stub.GetContainerName();
                 var blobName = stub.GetBlobName();
                 engine.Add(containerName, blobName, stub.GetBytes());
             }
 
-            _host.Start(engine, _settings.Port);
+            _host.Start(engine, Settings.Port);
         }
 
         public override void Stop()

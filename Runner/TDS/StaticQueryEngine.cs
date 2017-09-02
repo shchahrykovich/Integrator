@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.SqlServer.TDS;
 using Microsoft.SqlServer.TDS.ColMetadata;
 using Microsoft.SqlServer.TDS.Done;
@@ -12,24 +14,31 @@ using TDS.RPC;
 
 namespace Runner.TDS
 {
-    public class StaticQueryEngine: QueryEngine
+    public class StaticQueryEngine : QueryEngine
     {
         public String Name { get; set; }
 
-        private readonly Dictionary<String, List<SqlStub>> _stubs;
+        private readonly Dictionary<String, List<SqlStub>> _exisitngStubs;
+        private readonly List<SqlStub> _missingStubs;
 
         public StaticQueryEngine(TDSServerArguments arguments) : base(arguments)
         {
-            _stubs = new Dictionary<string, List<SqlStub>>(StringComparer.OrdinalIgnoreCase);
+            _exisitngStubs = new Dictionary<string, List<SqlStub>>(StringComparer.OrdinalIgnoreCase);
+            _missingStubs = new List<SqlStub>();
         }
 
         private void PrintMissignQuery(string sql, List<TDSRPCRequestParameter> parameters)
         {
-            lock (_stubs)
+            var newStub = new SqlStub();
+            newStub.Query = sql;
+            newStub.Parameters = new Dictionary<string, object>();
+
+            lock (_exisitngStubs)
             {
+                _missingStubs.Add(newStub);
                 Console.WriteLine($"--------------{Name}---------------------");
                 Console.WriteLine(sql);
-                
+
                 if (null != parameters)
                 {
                     foreach (var parameter in parameters)
@@ -37,6 +46,7 @@ namespace Runner.TDS
                         if (null != parameter.ParamMetaData && "@RETURN_VALUE" != parameter.ParamMetaData)
                         {
                             Console.WriteLine(parameter.ParamMetaData + " = " + parameter.Value);
+                            newStub.Parameters.Add(parameter.ParamMetaData.Substring(1), parameter.Value);
                         }
                     }
                 }
@@ -62,13 +72,13 @@ namespace Runner.TDS
 
                     if (columnDefinition.Type == TDSDataType.NVarChar)
                     {
-                        column.DataTypeSpecific = new TDSShilohVarCharColumnSpecific((ushort)columnDefinition.Size,
+                        column.DataTypeSpecific = new TDSShilohVarCharColumnSpecific((ushort) columnDefinition.Size,
                             new TDSColumnDataCollation(13632521, 52));
                     }
-                    else if (columnDefinition.Type == TDSDataType.DateTime2N || 
+                    else if (columnDefinition.Type == TDSDataType.DateTime2N ||
                              columnDefinition.Type == TDSDataType.DateTime)
                     {
-                        column.DataTypeSpecific = (byte)columnDefinition.Size;
+                        column.DataTypeSpecific = (byte) columnDefinition.Size;
                         column.Flags.IsComputed = true;
                         column.Flags.IsNullable =
                             true; // TODO: Must be nullable, otherwise something is wrong with SqlClient
@@ -78,11 +88,11 @@ namespace Runner.TDS
                     }
                     else if (columnDefinition.Type == TDSDataType.BigVarBinary)
                     {
-                        column.DataTypeSpecific = (ushort)columnDefinition.Size;
+                        column.DataTypeSpecific = (ushort) columnDefinition.Size;
                     }
                     else if (columnDefinition.Type == TDSDataType.Int2)
                     {
-                        column.DataTypeSpecific = (byte)columnDefinition.Size;
+                        column.DataTypeSpecific = (byte) columnDefinition.Size;
                     }
                     else
                     {
@@ -114,9 +124,9 @@ namespace Runner.TDS
         private SqlStub TryGet(string sql, List<TDSRPCRequestParameter> sqlParameters)
         {
             var key = sql.Trim();
-            if (_stubs.ContainsKey(key))
+            if (_exisitngStubs.ContainsKey(key))
             {
-                var stubs = _stubs[key];
+                var stubs = _exisitngStubs[key];
                 foreach (var stub in stubs)
                 {
                     if (null == stub.Parameters)
@@ -185,7 +195,8 @@ namespace Runner.TDS
                             else
                             {
                                 TDSDoneInProcToken doneIn =
-                                    new TDSDoneInProcToken(TDSDoneTokenStatusType.Count, TDSDoneTokenCommandType.DoneInProc,
+                                    new TDSDoneInProcToken(TDSDoneTokenStatusType.Count,
+                                        TDSDoneTokenCommandType.DoneInProc,
                                         result.Scalar);
 
                                 return new TDSMessageCollection(new TDSMessage(TDSMessageType.Response, doneIn));
@@ -237,7 +248,8 @@ namespace Runner.TDS
             return new TDSMessageCollection(new TDSMessage(TDSMessageType.Response, done));
         }
 
-        protected override TDSMessageCollection CreateQueryResponse(ITDSServerSession session, TDSSQLBatchToken batchRequest)
+        protected override TDSMessageCollection CreateQueryResponse(ITDSServerSession session,
+            TDSSQLBatchToken batchRequest)
         {
             string lowerBatchText = batchRequest.Text.ToLowerInvariant().Trim();
 
@@ -252,10 +264,11 @@ namespace Runner.TDS
                 {
                     TDSColumnData column = new TDSColumnData();
                     column.DataType = TDSDataType.IntN;
-                    column.DataTypeSpecific = (byte)4;
+                    column.DataTypeSpecific = (byte) 4;
                     column.Flags.Updatable = TDSColumnDataUpdatableFlag.ReadOnly;
                     column.Flags.IsComputed = true;
-                    column.Flags.IsNullable = true;  // TODO: Must be nullable, otherwise something is wrong with SqlClient
+                    column.Flags.IsNullable =
+                        true; // TODO: Must be nullable, otherwise something is wrong with SqlClient
 
                     // Add a column to the response
                     metadataToken.Columns.Add(column);
@@ -265,18 +278,21 @@ namespace Runner.TDS
 
                     tokens.Add(rowToken);
 
-                    TDSDoneToken doneToken = new TDSDoneToken(TDSDoneTokenStatusType.Final | TDSDoneTokenStatusType.Count, TDSDoneTokenCommandType.Select, 1);
+                    TDSDoneToken doneToken =
+                        new TDSDoneToken(TDSDoneTokenStatusType.Final | TDSDoneTokenStatusType.Count,
+                            TDSDoneTokenCommandType.Select, 1);
                     tokens.Add(doneToken);
                 }
                 else
                 {
                     tokens.AddRange(ReturnTable(result));
                     // Create DONE token
-                    TDSDoneToken doneToken = new TDSDoneToken(TDSDoneTokenStatusType.Final | TDSDoneTokenStatusType.Count,
-                        TDSDoneTokenCommandType.Select, (ulong)result.GetRecords().Count());
+                    TDSDoneToken doneToken = new TDSDoneToken(
+                        TDSDoneTokenStatusType.Final | TDSDoneTokenStatusType.Count,
+                        TDSDoneTokenCommandType.Select, (ulong) result.GetRecords().Count());
                     tokens.Add(doneToken);
                 }
-                
+
                 return new TDSMessageCollection(new TDSMessage(TDSMessageType.Response, tokens.ToArray()));
             }
             else
@@ -288,17 +304,47 @@ namespace Runner.TDS
 
         public void AddStub(SqlStub stub)
         {
-            if (_stubs.ContainsKey(stub.Query))
+            if (_exisitngStubs.ContainsKey(stub.Query))
             {
-                _stubs[stub.Query].Add(stub);
+                _exisitngStubs[stub.Query].Add(stub);
             }
             else
             {
                 var stubs = new List<SqlStub>();
                 stubs.Add(stub);
-                _stubs.Add(stub.Query, stubs);
+                _exisitngStubs.Add(stub.Query, stubs);
             }
-            
+
+        }
+
+        public IEnumerable<SqlStub> GetMissingStubs()
+        {
+            using (var hasher = MD5.Create())
+                lock (_exisitngStubs)
+                {
+                    foreach (var stub in _missingStubs)
+                    {
+                        stub.Name = GetHash(stub, hasher);
+                        if (stub.Parameters.Count == 0)
+                        {
+                            stub.Parameters = null;
+                        }
+                        yield return stub;
+                    }
+                }
+        }
+
+        private static String GetHash(SqlStub stub, MD5 hasher)
+        {
+            var parameters = String.Join(";", stub.Parameters.Select(p => p.Key + p.Value));
+            var bytes = Encoding.UTF8.GetBytes(stub.Query + parameters);
+            byte[] hash = hasher.ComputeHash(bytes);
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < hash.Length; i++)
+            {
+                sb.Append(hash[i].ToString("X2"));
+            }
+            return sb.ToString();
         }
     }
 }

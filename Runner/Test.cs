@@ -12,11 +12,11 @@ namespace Runner
         public String[] Args { get; set; }
 
         [JsonIgnore]
-        public IEnumerable<ProtocolEndpoint> Endpoints => _endpoints;
+        public IEnumerable<IProtocolEndpoint<ProtocolEndpointSettings>> Endpoints => _endpoints;
 
-        private readonly List<ProtocolEndpoint> _endpoints = new List<ProtocolEndpoint>();
+        private readonly List<IProtocolEndpoint<ProtocolEndpointSettings>> _endpoints = new List<IProtocolEndpoint<ProtocolEndpointSettings>>();
 
-        public void AddEndpoint(ProtocolEndpoint endpoint)
+        public void AddEndpoint(IProtocolEndpoint<ProtocolEndpointSettings> endpoint)
         {
             _endpoints.Add(endpoint);
         }

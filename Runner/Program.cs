@@ -11,6 +11,23 @@ namespace Runner
 
         static void Main(string[] args)
         {
+            try
+            {
+                RunApp(args);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                Environment.ExitCode = 1;
+                if (Debugger.IsAttached)
+                {
+                    Debugger.Break();
+                }
+            }
+        }
+
+        private static void RunApp(string[] args)
+        {
             Console.CancelKeyPress += (sender, eventArgs) =>
             {
                 eventArgs.Cancel = true;
@@ -19,7 +36,8 @@ namespace Runner
 
             if (0 == args.Length)
             {
-                Console.WriteLine("No arguments.");
+                Console.WriteLine("Commands:");
+                Console.WriteLine("\t{folder} - run all tests fromt specified folder");
                 return;
             }
 
@@ -27,45 +45,14 @@ namespace Runner
 
             foreach (var test in Directory.GetDirectories(tests, "*", SearchOption.TopDirectoryOnly))
             {
-                if (Path.GetFileName(test).StartsWith("!"))
+                if (Path.GetFileName(test).StartsWith("!") || Path.GetFileName(test).StartsWith("."))
                 {
                     continue;
                 }
 
                 Test t = TestLoader.Load(test, Source.Token);
-
-                Console.WriteLine("---------------------------------------");
-                Console.WriteLine("Executing - " + Path.GetFileName(t.Name));
-                Console.WriteLine("---------------------------------------");
-                
-                foreach (var endpoint in t.Endpoints)
-                {
-                    endpoint.Start();
-                }
-
-                foreach (var endpoint in t.Endpoints)
-                {
-                    endpoint.PrintSettings();
-                }
-
-                if (!String.IsNullOrWhiteSpace(t.Cmd))
-                {
-                    var p = Process.Start(t.Cmd, String.Join(" ", t.Args));
-                    p.WaitForExit();
-                    if (0 != p.ExitCode)
-                    {
-                        Debugger.Break();
-                    }
-                }
-                else
-                {
-                    WaitHandle.WaitAll(new WaitHandle[] { Source.Token.WaitHandle });
-                }
-
-                foreach (var endpoint in t.Endpoints)
-                {
-                    endpoint.Stop();
-                }
+                TestRunner runner = new TestRunner(t, Source.Token, Console.Out);
+                runner.Run();
             }
         }
     }

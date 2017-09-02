@@ -20,18 +20,18 @@ namespace Runner
                 if (Is(endpointDir, "Sql"))
                 {
                     var sqlSettings = FileSerializer.ReadConfig<TDSStubSettings>(endpointDir.FullName, new TDSStubSettings{Port = 54300});
-                    test.AddEndpoint(new TDSStub(endpointDir.FullName, token, sqlSettings));
+                    test.AddEndpoint(new TDSStub(token, sqlSettings));
                 }
                 else if (Is(endpointDir, "Amqp"))
                 {
                     var amqpSettings = FileSerializer.ReadConfig<AMQPStubSettings>(endpointDir.FullName, new AMQPStubSettings{Port = 54400});
-                    test.AddEndpoint(new AMQPStub(endpointDir.FullName, token, amqpSettings));
+                    test.AddEndpoint(new AMQPStub(token, amqpSettings));
                 }
                 else if (Is(endpointDir, "AzureBlobService"))
                 {
                     var blobSettings = FileSerializer.ReadConfig<AzureBlobServiceStubSettings>(endpointDir.FullName,
                         new AzureBlobServiceStubSettings {Port = 54500});
-                    test.AddEndpoint(new AzureBlobServiceStub(endpointDir.FullName, token, blobSettings));
+                    test.AddEndpoint(new AzureBlobServiceStub(token, blobSettings));
                 }
             }
 

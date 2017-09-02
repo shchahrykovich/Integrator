@@ -9,5 +9,8 @@ namespace Runner
 
         [YamlIgnore]
         public string FilePath { get; set; }
+
+        [YamlIgnore]
+        public string Name { get; set; }
     }
 }
