@@ -5,6 +5,7 @@ using Runner.Amqp;
 using Runner.AzureBlobService;
 using Runner.Serialization;
 using Runner.TDS;
+using Runner.Redis;
 
 namespace Runner
 {
@@ -32,6 +33,12 @@ namespace Runner
                     var blobSettings = FileSerializer.ReadConfig<AzureBlobServiceStubSettings>(endpointDir.FullName,
                         new AzureBlobServiceStubSettings {Port = 54500});
                     test.AddEndpoint(new AzureBlobServiceStub(token, blobSettings));
+                }
+                else if (Is(endpointDir, "Redis"))
+                {
+                    var settings = FileSerializer.ReadConfig<RedisEndpointSettings>(endpointDir.FullName,
+                        new RedisEndpointSettings { Port = 54600 });
+                    test.AddEndpoint(new RedisEdnpoint(token, settings));
                 }
             }
 
