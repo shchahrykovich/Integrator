@@ -1,46 +1,83 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Redis
 {
     public class RedisHost
     {
         private readonly CancellationToken _token;
+        private readonly int _port;
+        private readonly GenericRedisEngine _engine;
+        private TcpListener _listener;
+        private Task _thread;
+        private CancellationTokenSource _source;
+        private CancellationTokenSource _stopRequest;
 
-        public RedisHost(CancellationToken token)
+        public RedisHost(CancellationToken token, int port, GenericRedisEngine engine)
         {
-            _token = token;
+            _stopRequest = new CancellationTokenSource();
+            _source = CancellationTokenSource.CreateLinkedTokenSource(token, _stopRequest.Token);
+            _token = _source.Token;
+            _port = port;
+            _engine = engine;
         }
 
         public void Start()
         {
-            IPAddress address = IPAddress.Parse("127.0.0.1");
-            var listener = new TcpListener(address, 6379);
+            _thread = Task.Run(() => StartInternal());
+        }
 
-            listener.Start();
+        public void Stop()
+        {
+            _stopRequest.Cancel();
+            _thread.Wait();
+        }
 
-            var parser = new Parser();
+        private void StartInternal()
+        {
+            _listener = new TcpListener(IPAddress.Loopback, _port);
 
-            while (_token.IsCancellationRequested)
+            _listener.Start();
+
+            while (!_token.IsCancellationRequested)
             {
-                var client = listener.AcceptTcpClient();
-                using(var stream = client.GetStream())
-                {
-                    using(var reader = new StreamReader(stream))
-                    {
-                        var line = reader.ReadLine();
-                        var token = parser.Parse(line);
-                        switch
 
+                var client = _listener.AcceptTcpClient();
+                Task.Run(() => Process(client));
+            }
+        }
+
+        private void Process(TcpClient client)
+        {
+            using (client)
+            {
+                var parser = new Parser();
+                try
+                {
+                    using (var stream = client.GetStream())
+                    {
+                        while (!_token.IsCancellationRequested)
+                        {
+                            var command = parser.Parse(stream);
+                            if (null != command)
+                            {
+                                var result = _engine.Process(command);
+                                parser.ConvertToString(result, stream);
+                                stream.Flush();
+                            }
+                        }
                     }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.ToString());
                 }
             }
         }
-    }
     }
 }

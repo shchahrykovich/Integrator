@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
+using Redis;
 using Runner.AzureBlobService;
 
 namespace Runner.Redis
 {
     public class RedisEdnpoint: ProtocolEndpoint<RedisEndpointSettings>
     {
+        private RedisHost _host;
 
         public RedisEdnpoint(CancellationToken token, RedisEndpointSettings settings) :base(token, settings)
         {
@@ -16,22 +18,23 @@ namespace Runner.Redis
 
         public override TestExecutionStats GetStats()
         {
-            throw new NotImplementedException();
+            return new TestExecutionStats();
         }
 
         public override void PrintSettings(TextWriter log)
         {
-            throw new NotImplementedException();
+            log.WriteLine(Settings.Name + " - localhost:" + Settings.Port);
         }
 
         public override void Start()
         {
-            throw new NotImplementedException();
+            _host = new RedisHost(Token, Settings.Port, new RedisEngine(Settings.Port));
+            _host.Start();
         }
 
         public override void Stop()
         {
-            throw new NotImplementedException();
+            _host?.Stop();
         }
     }
 }

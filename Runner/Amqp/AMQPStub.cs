@@ -23,7 +23,7 @@ namespace Runner.Amqp
                 incommingLink.AddStub(stub);
             }
 
-            Uri uri = new Uri("amqp://127.0.0.1:" + Settings.Port);
+            Uri uri = new Uri("amqp://localhost:" + Settings.Port);
             _host = new ContainerHost(uri);
             _host.Open();
 
@@ -41,7 +41,7 @@ namespace Runner.Amqp
             if (null != _host)
             {
                 var addr = _host.Listeners[0].Address;
-                log.WriteLine(Settings.Name + $" - {addr.Scheme}://{addr.Host}{addr.Path}:{addr.Port}");
+                log.WriteLine(Settings.Name + $" - {addr.Scheme}://localhost{addr.Path}:{addr.Port}");
             }
         }
 
