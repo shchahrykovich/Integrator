@@ -33,7 +33,7 @@ namespace Runner.Amqp
 
         public override void Stop()
         {
-            _host.Close();
+            _host?.Close();
         }
 
         public override void PrintSettings(TextWriter log)

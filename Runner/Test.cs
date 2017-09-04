@@ -9,6 +9,8 @@ namespace Runner
     {
         public String Cmd { get; set; }
 
+        public String WorkingDir { get; set; }
+
         public String[] Args { get; set; }
 
         [JsonIgnore]

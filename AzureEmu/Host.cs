@@ -25,7 +25,7 @@ namespace AzureEmu
 
         public void Stop()
         {
-            _host.StopAsync().Wait();
+            _host?.StopAsync().Wait();
         }
     }
 }

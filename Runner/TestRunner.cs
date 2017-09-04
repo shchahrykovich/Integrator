@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading;
 using Runner.Serialization;
 
@@ -44,11 +45,18 @@ namespace Runner
         {
             if (!String.IsNullOrWhiteSpace(_test.Cmd))
             {
-                var p = Process.Start(_test.Cmd, String.Join(" ", _test.Args));
-                p.WaitForExit();
-                if (0 != p.ExitCode)
+                var args = _test.Args ?? new string[0];
+                ProcessStartInfo info = new ProcessStartInfo(_test.Cmd, String.Join(" ", args));
+                info.RedirectStandardInput = true;
+                info.WorkingDirectory = _test.WorkingDir ?? String.Empty;
+                var p = Process.Start(info);
+                using (_token.Register(() => { p.Kill(); }))
                 {
-                    Debugger.Break();
+                    p.WaitForExit();
+                    if (0 != p.ExitCode)
+                    {
+                        Debugger.Break();
+                    }
                 }
             }
             else

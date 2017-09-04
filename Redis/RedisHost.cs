@@ -41,14 +41,19 @@ namespace Redis
         private void StartInternal()
         {
             _listener = new TcpListener(IPAddress.Loopback, _port);
-
             _listener.Start();
 
-            while (!_token.IsCancellationRequested)
+            try
             {
-
-                var client = _listener.AcceptTcpClient();
-                Task.Run(() => Process(client));
+                while (!_token.IsCancellationRequested)
+                {
+                    var task = _listener.AcceptTcpClientAsync();
+                    task.Wait(_token);
+                    Task.Run(() => Process(task.Result));
+                }
+            }
+            catch (OperationCanceledException)
+            {
             }
         }
 
@@ -63,7 +68,7 @@ namespace Redis
                     {
                         while (!_token.IsCancellationRequested)
                         {
-                            var command = parser.Parse(stream);
+                            var command = parser.Parse(stream, _token);
                             if (null != command)
                             {
                                 var result = _engine.Process(command);

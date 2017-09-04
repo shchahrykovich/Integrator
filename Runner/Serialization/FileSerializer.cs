@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
+using YamlDotNet.Core;
+using YamlDotNet.Core.Events;
 using YamlDotNet.Serialization;
 
 namespace Runner.Serialization
@@ -25,24 +27,30 @@ namespace Runner.Serialization
                 {
                     continue;
                 }
-                using (var stubContent = new StringReader(File.ReadAllText(stubFile)))
+                using (var fileContent = new StringReader(File.ReadAllText(stubFile)))
                 {
-                    var stub = YamlDesirializer.Deserialize<TStub>(stubContent);
+                    var parser = new Parser(fileContent);
+                    parser.Expect<StreamStart>();
 
-                    foreach (var property in stringProperties)
+                    while (parser.Accept<DocumentStart>())
                     {
-                        var value = property.GetValue(stub) as String;
-                        if (!String.IsNullOrWhiteSpace(value))
+                        var stub = YamlDesirializer.Deserialize<TStub>(parser);
+
+                        foreach (var property in stringProperties)
                         {
-                            var newValue = value.TrimEnd().Replace("\n", "\r\n");
-                            property.SetValue(stub, newValue);
+                            var value = property.GetValue(stub) as String;
+                            if (!String.IsNullOrWhiteSpace(value))
+                            {
+                                var newValue = value.TrimEnd().Replace("\n", "\r\n");
+                                property.SetValue(stub, newValue);
+                            }
                         }
+
+                        stub.FilePath = stubFile;
+                        stub.FolderPath = endpointFolder;
+
+                        yield return stub;
                     }
-
-                    stub.FilePath = stubFile;
-                    stub.FolderPath = endpointFolder;
-
-                    yield return stub;
                 }
             }
         }
