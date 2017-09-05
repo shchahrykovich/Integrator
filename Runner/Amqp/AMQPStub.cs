@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using Amqp.Listener;
 using Runner.Serialization;
 
@@ -9,30 +10,37 @@ namespace Runner.Amqp
     public class AMQPStub : ProtocolEndpoint<AMQPStubSettings>
     {
         private ContainerHost _host;
+        private CancellationTokenRegistration _cancellationRegistration;
 
-        public AMQPStub(CancellationToken token, AMQPStubSettings settings):base(token, settings)
+        public AMQPStub(AMQPStubSettings settings): base(settings)
         {
         }
 
-        public override void Start()
+        public override Task StartInternalAsync()
         {
-            var incommingLink = new IncomingLinkEndpoint();
+            var end = new TaskCompletionSource<bool>();
+            _cancellationRegistration = Token.Register(() => end.SetCanceled());
 
+            var incommingLink = new IncomingLinkEndpoint(end);
             foreach (var stub in FileSerializer.ReadStubs<AMQPMessage>(Settings.FolderPath))
             {
                 incommingLink.AddStub(stub);
             }
 
-            Uri uri = new Uri("amqp://localhost:" + Settings.Port);
+            var uri = new Uri("amqp://localhost:" + Settings.Port);
             _host = new ContainerHost(uri);
+
             _host.Open();
 
             _host.RegisterMessageProcessor(uri.AbsolutePath, new MessageProcessor());
             _host.RegisterLinkProcessor(new LinkProcessor(incommingLink));
+
+            return end.Task;
         }
 
         public override void Stop()
         {
+            _cancellationRegistration.Dispose();
             _host?.Close();
         }
 
@@ -47,7 +55,7 @@ namespace Runner.Amqp
 
         public override TestExecutionStats GetStats()
         {
-            return new TestExecutionStats();
+            return new TestExecutionStats(this);
         }
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.SqlServer.TDS.Servers;
 using Runner.Serialization;
 
@@ -11,12 +12,11 @@ namespace Runner.TDS
         private TestTdsServer _server;
         private StaticQueryEngine _engine;
 
-        public TDSStub(CancellationToken token, 
-                       TDSStubSettings settings): base(token, settings)
+        public TDSStub(TDSStubSettings settings): base(settings)
         {
         }
 
-        public override void Start()
+        public override Task StartInternalAsync()
         {
             var arguments = new TDSServerArguments {Log = Console.Out};
             _engine = new StaticQueryEngine(arguments);
@@ -28,6 +28,8 @@ namespace Runner.TDS
             }
 
             _server = TestTdsServer.StartTestServer(_engine, port: Settings.Port, enableLog: false);
+
+            return Task.Run(() => WaitHandle.WaitAll(new WaitHandle[] { Token.WaitHandle }));
         }
 
         public override void Stop()
@@ -49,7 +51,7 @@ namespace Runner.TDS
 
         public override TestExecutionStats GetStats()
         {
-            TestExecutionStats stats = new TestExecutionStats();
+            TestExecutionStats stats = new TestExecutionStats(this);
             stats.AddMissingStubs(_engine.GetMissingStubs());
 
             return stats;

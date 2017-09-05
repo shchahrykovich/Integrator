@@ -11,7 +11,7 @@ namespace Runner
 {
     public static class TestLoader
     {
-        public static Test Load(string path, CancellationToken token)
+        public static Test Load(string path)
         {
             var test = FileSerializer.ReadConfig<Test>(path, new Test());
 
@@ -21,24 +21,24 @@ namespace Runner
                 if (Is(endpointDir, "Sql"))
                 {
                     var sqlSettings = FileSerializer.ReadConfig<TDSStubSettings>(endpointDir.FullName, new TDSStubSettings{Port = 54300});
-                    test.AddEndpoint(new TDSStub(token, sqlSettings));
+                    test.AddEndpoint(new TDSStub(sqlSettings));
                 }
                 else if (Is(endpointDir, "Amqp"))
                 {
                     var amqpSettings = FileSerializer.ReadConfig<AMQPStubSettings>(endpointDir.FullName, new AMQPStubSettings{Port = 54400});
-                    test.AddEndpoint(new AMQPStub(token, amqpSettings));
+                    test.AddEndpoint(new AMQPStub(amqpSettings));
                 }
                 else if (Is(endpointDir, "AzureBlobService"))
                 {
                     var blobSettings = FileSerializer.ReadConfig<AzureBlobServiceStubSettings>(endpointDir.FullName,
                         new AzureBlobServiceStubSettings {Port = 54500});
-                    test.AddEndpoint(new AzureBlobServiceStub(token, blobSettings));
+                    test.AddEndpoint(new AzureBlobServiceStub(blobSettings));
                 }
                 else if (Is(endpointDir, "Redis"))
                 {
                     var settings = FileSerializer.ReadConfig<RedisEndpointSettings>(endpointDir.FullName,
                         new RedisEndpointSettings { Port = 54600 });
-                    test.AddEndpoint(new RedisEdnpoint(token, settings));
+                    test.AddEndpoint(new RedisEdnpoint(settings));
                 }
             }
 

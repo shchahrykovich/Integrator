@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
 using Runner.Serialization;
 
 namespace Runner.AzureBlobService
@@ -13,7 +14,7 @@ namespace Runner.AzureBlobService
     {
         private AzureHost _host;
 
-        public AzureBlobServiceStub(CancellationToken token, AzureBlobServiceStubSettings settings) : base(token, settings)
+        public AzureBlobServiceStub(AzureBlobServiceStubSettings settings) : base(settings)
         {
             _host = new AzureHost();
         }
@@ -25,10 +26,10 @@ namespace Runner.AzureBlobService
 
         public override TestExecutionStats GetStats()
         {
-            return new TestExecutionStats();
+            return new TestExecutionStats(this);
         }
 
-        public override void Start()
+        public override Task StartInternalAsync()
         {
             var engine = new GenericBlobServiceEngine();
             foreach (var stub in FileSerializer.ReadStubs<BlobFileStub>(Settings.FolderPath))
@@ -39,6 +40,8 @@ namespace Runner.AzureBlobService
             }
 
             _host.Start(engine, Settings.Port);
+
+            return Task.Run(() => WaitHandle.WaitAll(new WaitHandle[] {Token.WaitHandle}));
         }
 
         public override void Stop()

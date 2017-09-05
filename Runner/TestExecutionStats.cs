@@ -4,10 +4,12 @@ namespace Runner
 {
     public class TestExecutionStats
     {
+        public IProtocolEndpoint Endpoint { get; private set; }
         public List<Stub> MissingStubs { get; private set; }
 
-        public TestExecutionStats()
+        public TestExecutionStats(IProtocolEndpoint endpoint)
         {
+            Endpoint = endpoint;
             MissingStubs = new List<Stub>();
         }
 

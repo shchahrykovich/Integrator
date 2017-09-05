@@ -12,5 +12,7 @@ namespace Runner
 
         [YamlIgnore]
         public string Name { get; set; }
+
+        public bool? Stop { get; set; }
     }
 }

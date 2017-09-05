@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Threading;
+using System.Threading.Tasks;
 using Amqp;
 using Amqp.Framing;
 using Amqp.Listener;
@@ -8,11 +9,13 @@ namespace Runner.Amqp
 {
     internal class IncomingLinkEndpoint : LinkEndpoint
     {
+        private readonly TaskCompletionSource<bool> _end;
         private ConcurrentBag<AMQPMessage> _messages;
         private long _id;
 
-        public IncomingLinkEndpoint()
+        public IncomingLinkEndpoint(TaskCompletionSource<bool> end)
         {
+            _end = end;
             _messages = new ConcurrentBag<AMQPMessage>();
         }
 
@@ -29,6 +32,11 @@ namespace Runner.Amqp
                 AMQPMessage data;
                 if(_messages.TryTake(out data))
                 {
+                    if (data.Stop.HasValue && data.Stop.Value)
+                    {
+                        _end.SetException(new StopTestSignalException());
+                    }
+
                     var message = new Message(data.Body);
                     message.Properties = new Properties() { Subject = "Message" + Interlocked.Increment(ref this._id) };
                     flowContext.Link.SendMessage(message);

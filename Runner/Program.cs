@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading;
+using Runner.Serialization;
 
 namespace Runner
 {
@@ -50,9 +53,24 @@ namespace Runner
                     continue;
                 }
 
-                Test t = TestLoader.Load(test, Source.Token);
+                Test t = TestLoader.Load(test);
                 TestRunner runner = new TestRunner(t, Source.Token, Console.Out);
-                runner.Run();
+                var stats = runner.Run().ToArray();
+                CreateMissingStubs(stats);
+                var verifier = new TestVerifier(stats);
+                verifier.VerifyAll();
+            }
+        }
+
+        private static void CreateMissingStubs(IEnumerable<TestExecutionStats> array)
+        {
+            foreach (var stats in array)
+            {
+                foreach (var stub in stats.MissingStubs)
+                {
+                    var path = Path.Combine(stats.Endpoint.FolderPath, "_Missing", $"{stub.Name}.yml");
+                    FileSerializer.WriteStub(path, stub);
+                }
             }
         }
     }

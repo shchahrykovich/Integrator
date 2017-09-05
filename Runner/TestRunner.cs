@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Runtime.InteropServices;
+using System.Linq;
 using System.Threading;
-using Runner.Serialization;
+using System.Threading.Tasks;
 
 namespace Runner
 {
@@ -12,36 +12,61 @@ namespace Runner
     {
         private readonly Test _test;
         private readonly CancellationToken _token;
+        private readonly CancellationTokenSource _stopExecution = new CancellationTokenSource();
         private readonly TextWriter _log;
 
         public TestRunner(Test test, CancellationToken token, TextWriter log)
         {
             _test = test;
-            _token = token;
+            _token = CancellationTokenSource.CreateLinkedTokenSource(_stopExecution.Token, token).Token;
             _log = log;
         }
 
-        public void Run()
+        public IEnumerable<TestExecutionStats> Run()
         {
             _log.WriteLine("---------------------------------------");
             _log.WriteLine("Executing - " + _test.Name);
             _log.WriteLine("---------------------------------------");
-
             try
             {
-                StartEndpoints();
+                var endpoints = StartEndpoints(_token);
                 PrintSettings();
-                Wait();
-                StopEndpoints();
-                CreateMissingStubs();
+                var main = Task.Run(() => RunApp());
+
+                Task.WaitAny(endpoints);
+                _stopExecution.Cancel();
+                try
+                {
+                    Task.WaitAll(endpoints);
+                }
+                catch (AggregateException ex)
+                {
+                    if (!(ex.InnerExceptions.All(e => e is StopTestSignalException) ||
+                        ex.InnerExceptions.All(e => e is TaskCanceledException)))
+                    {
+                        throw;
+                    }
+                }
+
+                main.Wait();
             }
-            finally 
+            finally
             {
                 StopEndpoints();
+            }
+
+            return _test.Endpoints.Select(e => e.GetStats()).ToArray();
+        }
+
+        private void StopEndpoints()
+        {
+            foreach (var endpoint in _test.Endpoints)
+            {
+                endpoint.Stop();
             }
         }
 
-        private void Wait()
+        private int RunApp()
         {
             if (!String.IsNullOrWhiteSpace(_test.Cmd))
             {
@@ -50,19 +75,24 @@ namespace Runner
                 info.RedirectStandardInput = true;
                 info.WorkingDirectory = _test.WorkingDir ?? String.Empty;
                 var p = Process.Start(info);
-                using (_token.Register(() => { p.Kill(); }))
+
+                var handle = new ProcessWaitHandle(p);
+                var index = WaitHandle.WaitAny(new WaitHandle[] {_token.WaitHandle, handle});
+                if (index == 0)
                 {
-                    p.WaitForExit();
-                    if (0 != p.ExitCode)
-                    {
-                        Debugger.Break();
-                    }
+                    p.Kill();
                 }
+                else
+                {
+                    _stopExecution.Cancel();
+                }
+                return p.ExitCode;
             }
             else
             {
                 WaitHandle.WaitAll(new WaitHandle[] {_token.WaitHandle});
             }
+            return 0;
         }
 
         private void PrintSettings()
@@ -73,33 +103,15 @@ namespace Runner
             }
         }
 
-        private void StartEndpoints()
+        private Task[] StartEndpoints(CancellationToken token)
         {
-            foreach (var endpoint in _test.Endpoints)
-            {
-                endpoint.Start();
-            }
-        }
+            List<Task> tasks = new List<Task>();
 
-        private void CreateMissingStubs()
-        {
             foreach (var endpoint in _test.Endpoints)
             {
-                TestExecutionStats stats = endpoint.GetStats();
-                foreach (Stub stub in stats.MissingStubs)
-                {
-                    var path = Path.Combine(endpoint.Settings.FolderPath, "_Missing", $"{stub.Name}.yml");
-                    FileSerializer.WriteStub(path, stub);
-                }
+                tasks.Add(endpoint.StartAsync(token));
             }
-        }
-
-        private void StopEndpoints()
-        {
-            foreach (var endpoint in _test.Endpoints)
-            {
-                endpoint.Stop();
-            }
+            return tasks.ToArray();
         }
     }
 }
