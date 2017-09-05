@@ -433,22 +433,22 @@ namespace Microsoft.SqlServer.TDS.Row
                         case 4:
                             destination.WriteByte(7);
                             scaledSeconds = (ulong) (seconds * Math.Pow(10, 4));
-                            destination.WriteByte((byte)scaledSeconds);
-                            destination.WriteByte((byte)(scaledSeconds >> 8));
-                            destination.WriteByte((byte)(scaledSeconds >> 16));
-                            destination.WriteByte((byte)(scaledSeconds >> 24));
-                                break;
+                            destination.WriteByte((byte) scaledSeconds);
+                            destination.WriteByte((byte) (scaledSeconds >> 8));
+                            destination.WriteByte((byte) (scaledSeconds >> 16));
+                            destination.WriteByte((byte) (scaledSeconds >> 24));
+                            break;
                         case 5:
                         case 6:
                         case 7:
                             destination.WriteByte(8);
                             scaledSeconds = (ulong) (seconds * Math.Pow(10, 5));
-                            destination.WriteByte((byte)scaledSeconds);
-                            destination.WriteByte((byte)(scaledSeconds >> 8));
-                            destination.WriteByte((byte)(scaledSeconds >> 16));
-                            destination.WriteByte((byte)(scaledSeconds >> 24));
-                            destination.WriteByte((byte)(scaledSeconds >> 32));
-                                break;
+                            destination.WriteByte((byte) scaledSeconds);
+                            destination.WriteByte((byte) (scaledSeconds >> 8));
+                            destination.WriteByte((byte) (scaledSeconds >> 16));
+                            destination.WriteByte((byte) (scaledSeconds >> 24));
+                            destination.WriteByte((byte) (scaledSeconds >> 32));
+                            break;
                     }
                     destination.WriteByte((byte) days);
                     destination.WriteByte((byte) (days >> 8));

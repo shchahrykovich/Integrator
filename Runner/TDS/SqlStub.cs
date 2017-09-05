@@ -24,6 +24,8 @@ namespace Runner.TDS
 
         public Dictionary<String, Object> Parameters { get; set; }
 
+        public int? ReturnValue { get; set; }
+
         public IEnumerable<Object[]> GetRecords()
         {
             if (null == _records)
@@ -151,7 +153,7 @@ namespace Runner.TDS
                 }
                 case TDSDataType.DateTime:
                 case TDSDataType.DateTime2N:
-                    {
+                {
                     return DateTime.Parse(value);
                 }
                 default:

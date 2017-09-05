@@ -52,6 +52,7 @@ namespace TDS.RPC
 
             TDSUtilities.WriteUShort(destination, ParamOrdinal);
 
+            destination.WriteByte((byte)ParamName.Length);
             TDSUtilities.WriteString(destination, ParamName);
 
             destination.WriteByte((byte)Status);

@@ -192,14 +192,33 @@ namespace Runner.TDS
                                 return new TDSMessageCollection(new TDSMessage(TDSMessageType.Response,
                                     tokens.ToArray()));
                             }
+                            else if (result.ReturnValue.HasValue)
+                            {
+                                var retVal = new TDSReturnValueToken();
+                                retVal.Flags.Updatable = TDSColumnDataUpdatableFlag.ReadOnly;
+                                retVal.DataType = TDSDataType.IntN;
+                                retVal.DataTypeSpecific = (byte) 4;
+                                retVal.Flags.IsComputed = true;
+                                retVal.Flags.IsNullable =
+                                    true; // TODO: Must be nullable, otherwise something is wrong with SqlClient
+                                retVal.ParamName = "@RETURN_VALUE";
+                                retVal.Value = (int) result.ReturnValue.Value;
+                                retVal.Status = TDSReturnValueStatus.Output;
+
+                                TDSDoneInProcToken doneInRpc =
+                                    new TDSDoneInProcToken(TDSDoneTokenStatusType.Count,
+                                        TDSDoneTokenCommandType.DoneInProc, 1);
+                                
+                                return new TDSMessageCollection(new TDSMessage(TDSMessageType.Response, retVal, doneInRpc));
+                            }
                             else
                             {
-                                TDSDoneInProcToken doneIn =
+                                TDSDoneInProcToken doneInRpc =
                                     new TDSDoneInProcToken(TDSDoneTokenStatusType.Count,
                                         TDSDoneTokenCommandType.DoneInProc,
                                         result.Scalar);
 
-                                return new TDSMessageCollection(new TDSMessage(TDSMessageType.Response, doneIn));
+                                return new TDSMessageCollection(new TDSMessage(TDSMessageType.Response, doneInRpc));
                             }
                         }
                         else
