@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -33,6 +34,11 @@ namespace Runner.Redis
             _host.Start();
 
             return Task.Run(() => WaitHandle.WaitAll(new WaitHandle[] { Token.WaitHandle }));
+        }
+
+        public override IEnumerable<Stub> GetAllStubs()
+        {
+            return Enumerable.Empty<Stub>();
         }
 
         public override void Stop()

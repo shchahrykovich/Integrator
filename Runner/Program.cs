@@ -58,7 +58,11 @@ namespace Runner
                 var stats = runner.Run().ToArray();
                 CreateMissingStubs(stats);
                 var verifier = new TestVerifier(stats);
-                verifier.VerifyAll();
+                var asserts = verifier.VerifyAll().ToArray();
+                foreach (var assert in asserts)
+                {
+                    Console.WriteLine(assert.Stub.Name + "   " + assert.Error);
+                }
             }
         }
 

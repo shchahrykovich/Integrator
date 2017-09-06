@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,6 +12,8 @@ namespace Runner
         public String Name => Settings.Name;
 
         public String FolderPath => Settings.FolderPath;
+
+        public abstract IEnumerable<Stub> GetAllStubs();
 
         public TSettings Settings { get; private set; }
 
@@ -38,7 +41,7 @@ namespace Runner
         public abstract TestExecutionStats GetStats();
     }
 
-    public interface IProtocolEndpoint<out TSettings> :IProtocolEndpoint where TSettings : ProtocolEndpointSettings
+    public interface IProtocolEndpoint<out TSettings>: IProtocolEndpoint where TSettings : ProtocolEndpointSettings
     {
         TSettings Settings { get; }
 
@@ -55,5 +58,6 @@ namespace Runner
     {
         String Name { get; }
         string FolderPath { get; }
+        IEnumerable<Stub> GetAllStubs();
     }
 }

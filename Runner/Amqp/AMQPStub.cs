@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Amqp.Listener;
@@ -19,7 +21,10 @@ namespace Runner.Amqp
         public override Task StartInternalAsync()
         {
             var end = new TaskCompletionSource<bool>();
-            _cancellationRegistration = Token.Register(() => end.SetCanceled());
+            _cancellationRegistration = Token.Register(() =>
+            {
+                end.TrySetCanceled();
+            });
 
             var incommingLink = new IncomingLinkEndpoint(end);
             foreach (var stub in FileSerializer.ReadStubs<AMQPMessage>(Settings.FolderPath))
@@ -36,6 +41,11 @@ namespace Runner.Amqp
             _host.RegisterLinkProcessor(new LinkProcessor(incommingLink));
 
             return end.Task;
+        }
+
+        public override IEnumerable<Stub> GetAllStubs()
+        {
+            return Enumerable.Empty<Stub>();
         }
 
         public override void Stop()

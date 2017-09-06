@@ -1,6 +1,7 @@
 ﻿using AzureEmu;
 using AzureEmu.Engine;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -42,6 +43,11 @@ namespace Runner.AzureBlobService
             _host.Start(engine, Settings.Port);
 
             return Task.Run(() => WaitHandle.WaitAll(new WaitHandle[] {Token.WaitHandle}));
+        }
+
+        public override IEnumerable<Stub> GetAllStubs()
+        {
+            return Enumerable.Empty<Stub>();
         }
 
         public override void Stop()

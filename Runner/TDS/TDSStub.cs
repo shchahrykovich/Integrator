@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,6 +12,7 @@ namespace Runner.TDS
     {
         private TestTdsServer _server;
         private StaticQueryEngine _engine;
+        private readonly List<SqlStub> _exestingStubs = new List<SqlStub>();
 
         public TDSStub(TDSStubSettings settings): base(settings)
         {
@@ -24,12 +26,21 @@ namespace Runner.TDS
 
             foreach (var stub in FileSerializer.ReadStubs<SqlStub>(Settings.FolderPath))
             {
+                _exestingStubs.Add(stub);
                 _engine.AddStub(stub);
             }
 
             _server = TestTdsServer.StartTestServer(_engine, port: Settings.Port, enableLog: false);
 
             return Task.Run(() => WaitHandle.WaitAll(new WaitHandle[] { Token.WaitHandle }));
+        }
+
+        public override IEnumerable<Stub> GetAllStubs()
+        {
+            foreach (var stub in _exestingStubs)
+            {
+                yield return stub;
+            }
         }
 
         public override void Stop()
@@ -53,6 +64,7 @@ namespace Runner.TDS
         {
             TestExecutionStats stats = new TestExecutionStats(this);
             stats.AddMissingStubs(_engine.GetMissingStubs());
+            stats.SetExecutions(_engine.GetExecutions());
 
             return stats;
         }

@@ -20,11 +20,13 @@ namespace Runner.TDS
 
         private readonly Dictionary<String, List<SqlStub>> _exisitngStubs;
         private readonly List<SqlStub> _missingStubs;
+        private readonly Dictionary<SqlStub, int> _executions;
 
         public StaticQueryEngine(TDSServerArguments arguments) : base(arguments)
         {
             _exisitngStubs = new Dictionary<string, List<SqlStub>>(StringComparer.OrdinalIgnoreCase);
             _missingStubs = new List<SqlStub>();
+            _executions = new Dictionary<SqlStub, int>();
         }
 
         private void PrintMissignQuery(string sql, List<TDSRPCRequestParameter> parameters)
@@ -150,6 +152,12 @@ namespace Runner.TDS
                         }
                         if (found)
                         {
+                            if (!_executions.ContainsKey(stub))
+                            {
+                                _executions.Add(stub, 0);
+                            }
+                            _executions[stub] = _executions[stub] + 1;
+
                             return stub;
                         }
                     }
@@ -364,6 +372,16 @@ namespace Runner.TDS
                 sb.Append(hash[i].ToString("X2"));
             }
             return sb.ToString();
+        }
+
+        public Dictionary<Stub, int> GetExecutions()
+        {
+            var result = new Dictionary<Stub, int>();
+            foreach (var execution in _executions)
+            {
+                result.Add(execution.Key, execution.Value);
+            }
+            return result;
         }
     }
 }
