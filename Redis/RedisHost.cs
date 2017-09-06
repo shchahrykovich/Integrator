@@ -66,9 +66,10 @@ namespace Redis
                 {
                     using (var stream = client.GetStream())
                     {
+                        var redisStreamReader = new RedisStreamReader(stream, _token, 2000000);
                         while (!_token.IsCancellationRequested)
                         {
-                            var command = parser.Parse(stream, _token);
+                            var command = parser.Parse(redisStreamReader);
                             if (null != command)
                             {
                                 var result = _engine.Process(command);

@@ -5,29 +5,28 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Redis
 {
     public class Parser
     {
-        public RedisToken Parse(Stream reader, CancellationToken cancellationToken)
+        public RedisToken Parse(RedisStreamReader reader)
         {
-            var type = new byte[1];
-            var readLen = reader.ReadAsync(type, 0, 1, cancellationToken).Result;
-            if (0 == readLen)
+            var rawType = reader.ReadByte();
+            if (!rawType.HasValue)
             {
                 return null;
             }
-            switch ((char) type[0])
+            var type = (char) rawType.Value;
+            switch (type)
             {
                 case '*':
                 {
-                    var length = int.Parse(ReadLine(reader, cancellationToken));
+                    var length = int.Parse(reader.ReadLine());
                     var token = new ArrayRedisToken(length);
                     for (int i = 0; i < length; i++)
                     {
-                        token.Add(Parse(reader, cancellationToken));
+                        token.Add(Parse(reader));
                     }
                     return token;
                 }
@@ -35,84 +34,29 @@ namespace Redis
                 {
                     return new SimpleStringRedisToken
                     {
-                        Data = ReadLine(reader, cancellationToken)
+                        Data = reader.ReadLine()
                     };
                 }
                 case ':':
                 {
                     return new IntegerRedisToken
                     {
-                        Data = int.Parse(ReadLine(reader, cancellationToken))
+                        Data = int.Parse(reader.ReadLine())
                     };
                 }
                 case '$':
                 {
-                    var length = int.Parse(ReadLine(reader, cancellationToken));
-                    var content = new byte[length];
-                    int result = 0;
-                    int read = 0;
-                    int offset = 0;
-                    do
-                    {
-                        result = reader.Read(content, offset, length);
-                        offset = result;
-                        length = length - result;
-                    } while (read + offset != content.Length);
-                    ReadEndLine(reader, cancellationToken);
+                    var length = int.Parse(reader.ReadLine());
+                    var content = reader.ReadBytes(length);
+                    reader.ReadEndLine();
                     return new BulkStringRedisToken()
                     {
                         Content = content
-
                     };
                 }
                 default:
                     throw new NotImplementedException();
             }
-        }
-
-        private void ReadEndLine(Stream reader, CancellationToken cancellationToken)
-        {
-            if ('\r' != ReadByte(reader, cancellationToken) || '\n' != ReadByte(reader, cancellationToken))
-            {
-                throw  new ApplicationException("Can't read end line");
-            }
-        }
-
-        private string ReadLine(Stream s, CancellationToken cancellationToken)
-        {
-            List<byte> content = new List<byte>();
-
-            var carriageReturn = (char)ReadByte(s, cancellationToken);
-            content.Add((byte)carriageReturn);
-
-            var newLine = (char)ReadByte(s, cancellationToken);
-            content.Add((byte)newLine);
-
-            while (carriageReturn != '\r' && newLine != '\n')
-            {
-                var current = (char) ReadByte(s, cancellationToken);
-                content.Add((byte)current);
-
-                carriageReturn = newLine;
-                newLine = current;
-            }
-
-            var result = Encoding.UTF8.GetString(content.ToArray());
-            return result.Substring(0, result.Length -2);
-        }
-
-        private byte ReadByte(Stream reader, CancellationToken token)
-        {
-            var temp = new byte[1];
-
-            Task<int> task;
-            do
-            {
-                task = reader.ReadAsync(temp, -0, 1, token);
-                task.Wait(token);
-            } while (task.Result == 0);
-
-            return temp[0];
         }
 
         public void ConvertToString(RedisToken token, Stream writer)
@@ -164,9 +108,8 @@ namespace Redis
 
         private void WriteNewLine(Stream writer)
         {
-
-            writer.WriteByte((byte)'\r');
-            writer.WriteByte((byte)'\n');
+            writer.WriteByte((byte) '\r');
+            writer.WriteByte((byte) '\n');
         }
 
         private void WriteString(string line, Stream writer)

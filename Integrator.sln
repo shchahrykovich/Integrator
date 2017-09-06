@@ -19,7 +19,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AzureEmu", "AzureEmu\AzureE
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AzureEmu.Tests", "AzureEmu.Tests\AzureEmu.Tests.csproj", "{4A70547A-3383-407F-AD6B-9AA4F6565F0E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redis", "Redis\Redis.csproj", "{8ED3D471-4E08-4B14-BEAE-3B3F5829891D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Redis", "Redis\Redis.csproj", "{8ED3D471-4E08-4B14-BEAE-3B3F5829891D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Redis.Tests", "Redis.Tests\Redis.Tests.csproj", "{AE8A2C69-4637-4E75-A997-098D46F39ABC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -63,6 +65,10 @@ Global
 		{8ED3D471-4E08-4B14-BEAE-3B3F5829891D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8ED3D471-4E08-4B14-BEAE-3B3F5829891D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8ED3D471-4E08-4B14-BEAE-3B3F5829891D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AE8A2C69-4637-4E75-A997-098D46F39ABC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AE8A2C69-4637-4E75-A997-098D46F39ABC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AE8A2C69-4637-4E75-A997-098D46F39ABC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AE8A2C69-4637-4E75-A997-098D46F39ABC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
