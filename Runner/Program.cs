@@ -46,9 +46,9 @@ namespace Runner
 
             var tests = args[0];
 
-            foreach (var test in Directory.GetDirectories(tests, "*", SearchOption.TopDirectoryOnly))
+            foreach (var test in Directory.GetDirectories(tests, "*", SearchOption.TopDirectoryOnly).TakeWhile(_ => !Source.Token.IsCancellationRequested))
             {
-                if (Path.GetFileName(test).StartsWith("!") || Path.GetFileName(test).StartsWith(".") || Path.GetFileName(test).StartsWith("EndPoints"))
+                if (Path.GetFileName(test).StartsWith("!") || Path.GetFileName(test).StartsWith(".") || Path.GetFileName(test).StartsWith("_EndPoints"))
                 {
                     continue;
                 }

@@ -55,6 +55,10 @@ namespace Redis
             catch (OperationCanceledException)
             {
             }
+            finally
+            {
+                _listener.Stop();
+            }
         }
 
         private void Process(TcpClient client)

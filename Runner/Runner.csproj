@@ -18,4 +18,10 @@
     <ProjectReference Include="..\TDS\TDS.Servers\TDS.Servers.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Integrator.bat">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
