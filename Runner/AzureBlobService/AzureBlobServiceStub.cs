@@ -14,10 +14,13 @@ namespace Runner.AzureBlobService
     public class AzureBlobServiceStub : ProtocolEndpoint<AzureBlobServiceStubSettings>
     {
         private AzureHost _host;
+        private IEnumerable<BlobFileStub> _stubs;
 
-        public AzureBlobServiceStub(AzureBlobServiceStubSettings settings) : base(settings)
+        public AzureBlobServiceStub(AzureBlobServiceStubSettings settings, IEnumerable<BlobFileStub> stubs) : base(settings)
         {
             _host = new AzureHost();
+
+            _stubs = stubs;
         }
 
         public override void PrintSettings(TextWriter log)
@@ -33,12 +36,13 @@ namespace Runner.AzureBlobService
         public override Task StartInternalAsync()
         {
             var engine = new GenericBlobServiceEngine();
-            foreach (var stub in FileSerializer.ReadStubs<BlobFileStub>(Settings.FolderPath))
+            foreach (var stub in _stubs)
             {
                 var containerName = stub.GetContainerName();
                 var blobName = stub.GetBlobName();
                 engine.Add(containerName, blobName, stub.GetBytes());
             }
+
 
             _host.Start(engine, Settings.Port);
 

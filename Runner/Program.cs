@@ -48,7 +48,7 @@ namespace Runner
 
             foreach (var test in Directory.GetDirectories(tests, "*", SearchOption.TopDirectoryOnly))
             {
-                if (Path.GetFileName(test).StartsWith("!") || Path.GetFileName(test).StartsWith("."))
+                if (Path.GetFileName(test).StartsWith("!") || Path.GetFileName(test).StartsWith(".") || Path.GetFileName(test).StartsWith("EndPoints"))
                 {
                     continue;
                 }
@@ -56,23 +56,23 @@ namespace Runner
                 Test t = TestLoader.Load(test);
                 TestRunner runner = new TestRunner(t, Source.Token, Console.Out);
                 var stats = runner.Run().ToArray();
-                CreateMissingStubs(stats);
+                CreateMissingStubs(test, stats);
                 var verifier = new TestVerifier(stats);
                 var asserts = verifier.VerifyAll().ToArray();
                 foreach (var assert in asserts)
                 {
-                    Console.WriteLine(assert.Stub.Name + "   " + assert.Error);
+                    Console.WriteLine(assert.Stub.FilePath + " [" + assert.Stub.DocumentIndex + "]   " + assert.Error);
                 }
             }
         }
 
-        private static void CreateMissingStubs(IEnumerable<TestExecutionStats> array)
+        private static void CreateMissingStubs(String test, IEnumerable<TestExecutionStats> array)
         {
             foreach (var stats in array)
             {
                 foreach (var stub in stats.MissingStubs)
                 {
-                    var path = Path.Combine(stats.Endpoint.FolderPath, "_Missing", $"{stub.Name}.yml");
+                    var path = Path.Combine(test, stats.Endpoint.Name, "_Missing", $"{stub.Name}.yml");
                     FileSerializer.WriteStub(path, stub);
                 }
             }

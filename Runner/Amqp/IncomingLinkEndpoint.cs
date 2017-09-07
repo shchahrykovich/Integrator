@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Amqp;
@@ -13,10 +14,10 @@ namespace Runner.Amqp
         private ConcurrentBag<AMQPMessage> _messages;
         private long _id;
 
-        public IncomingLinkEndpoint(TaskCompletionSource<bool> end)
+        public IncomingLinkEndpoint(TaskCompletionSource<bool> end, IEnumerable<AMQPMessage> messages)
         {
             _end = end;
-            _messages = new ConcurrentBag<AMQPMessage>();
+            _messages = new ConcurrentBag<AMQPMessage>(messages);
         }
 
         public override void OnMessage(MessageContext messageContext)
@@ -57,11 +58,6 @@ namespace Runner.Amqp
 
         public override void OnDisposition(DispositionContext dispositionContext)
         {
-        }
-
-        internal void AddStub(AMQPMessage stub)
-        {
-            _messages.Add(stub);
         }
     }
 }

@@ -14,21 +14,20 @@ namespace Runner.TDS
         private StaticQueryEngine _engine;
         private readonly List<SqlStub> _exestingStubs = new List<SqlStub>();
 
-        public TDSStub(TDSStubSettings settings): base(settings)
+        public TDSStub(TDSStubSettings settings, IEnumerable<SqlStub> stubs) : base(settings)
         {
+            _exestingStubs.AddRange(stubs);
         }
 
         public override Task StartInternalAsync()
         {
             var arguments = new TDSServerArguments {Log = Console.Out};
             _engine = new StaticQueryEngine(arguments);
-            _engine.Name = Settings.Name;
-
-            foreach (var stub in FileSerializer.ReadStubs<SqlStub>(Settings.FolderPath))
+            foreach (var stub in _exestingStubs)
             {
-                _exestingStubs.Add(stub);
                 _engine.AddStub(stub);
             }
+            _engine.Name = Settings.Name;
 
             _server = TestTdsServer.StartTestServer(_engine, port: Settings.Port, enableLog: false);
 

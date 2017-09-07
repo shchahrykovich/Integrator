@@ -27,11 +27,13 @@ namespace Runner.Serialization
                 {
                     continue;
                 }
+                
                 using (var fileContent = new StringReader(File.ReadAllText(stubFile)))
                 {
                     var parser = new Parser(fileContent);
                     parser.Expect<StreamStart>();
 
+                    int docIndex = 1;
                     while (parser.Accept<DocumentStart>())
                     {
                         var stub = YamlDesirializer.Deserialize<TStub>(parser);
@@ -47,9 +49,12 @@ namespace Runner.Serialization
                         }
 
                         stub.FilePath = stubFile;
+                        stub.Name = Path.GetFileName(stubFile);
                         stub.FolderPath = endpointFolder;
+                        stub.DocumentIndex = docIndex;
 
                         yield return stub;
+                        docIndex++;
                     }
                 }
             }

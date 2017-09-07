@@ -18,7 +18,11 @@ namespace Runner
             {
                 foreach (var stub in stat.Endpoint.GetAllStubs())
                 {
-                    var verify = stub.GetVerificationInfo();
+                    var verify = stub.Verify;
+                    if (null == verify)
+                    {
+                        continue;
+                    }
                     if (verify.AtLeast.HasValue)
                     {
                         if (stat.Executions.ContainsKey(stub))

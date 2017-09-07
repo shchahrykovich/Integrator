@@ -13,9 +13,17 @@ namespace Runner.Amqp
     {
         private ContainerHost _host;
         private CancellationTokenRegistration _cancellationRegistration;
+        private List<AMQPMessage> _messages = new List<AMQPMessage>();
 
-        public AMQPStub(AMQPStubSettings settings): base(settings)
+        public AMQPStub(AMQPStubSettings settings, IEnumerable<AMQPMessage> stubs): base(settings)
         {
+            foreach (var stub in stubs)
+            {
+                for (int i = 0; i < stub.GetCount(); i++)
+                {
+                    _messages.Add(stub);
+                }
+            }
         }
 
         public override Task StartInternalAsync()
@@ -26,11 +34,7 @@ namespace Runner.Amqp
                 end.TrySetCanceled();
             });
 
-            var incommingLink = new IncomingLinkEndpoint(end);
-            foreach (var stub in FileSerializer.ReadStubs<AMQPMessage>(Settings.FolderPath))
-            {
-                incommingLink.AddStub(stub);
-            }
+            var incommingLink = new IncomingLinkEndpoint(end, _messages);
 
             var uri = new Uri("amqp://localhost:" + Settings.Port);
             _host = new ContainerHost(uri);
